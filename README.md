@@ -112,3 +112,7 @@ PROXY = False
 SEND_TO_DUMMY = False
 SEND_TO_SYSLOG = False
 ```
+
+## Screenshots
+* Status
+![Status](https://raw.githubusercontent.com/kavat/predator/master/screenshots/status.jpg)
