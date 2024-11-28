@@ -37,12 +37,14 @@ name will be similar to anubi_YYYY_MM_fqdn.json
 name is static and it is patterns_tcp_udp.json
 
 ## Modules
-### Layer 4 source/destination control
-Based on set of rules previously described
-Check for incoming/outcoming connection from/to malicious IP
-### Layer 7 pattern match
-Based on set of rules previously described
-Check for incoming/outcoming connection with pattern monitored
+### Layer 4 source/destination control and Layer 7 pattern match
+* Based on set of rules previously described
+* Check for incoming/outcoming connection from/to malicious IP
+* Check for incoming/outcoming connection with pattern monitored
+Default in config.py is True
+```
+IDS = True
+```
 ### Proxy
 MITM for SSL termination and possibility to pattern checking based on rules previously described; default in config.py is False
 ```
