@@ -45,8 +45,16 @@ Based on set of rules previously described
 Check for incoming/outcoming connection with pattern monitored
 ### Proxy
 MITM for SSL termination and possibility to pattern checking based on rules previously described
+Default in config.py is False
+```
+PROXY = False
+```
 ### Dummy
 Traffic decryption through Proxy module and replication to internal network for third parties analysis (such Suricata)
+Default in config.py is False
+```
+SEND_TO_DUMMY = False
+```
 
 ## Custom tags
 * On HTTP connection, Host field in header is isolated if available and propagated in log visibility in order to whitelist if host is safe
