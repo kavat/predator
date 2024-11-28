@@ -115,4 +115,5 @@ SEND_TO_SYSLOG = False
 
 ## Screenshots
 * Status
+
 ![Status](https://github.com/kavat/predator/blob/dd812843ab773fff2632a27352365e1d1ad092e0/screenshots/status.png)
