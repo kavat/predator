@@ -2,8 +2,8 @@
 Predator IDS and Proxy solution
 
 ## Main concepts
-NIDS = Network Intrusion Detection System, it is a tool used to identify a threat inside a network basing on a set of rules user-defined
-Proxy = It is a tool used to provide a single Internet access point with SSL termination in order to check encrypted traffic
+* NIDS = Network Intrusion Detection System, it is a tool used to identify a threat inside a network basing on a set of rules user-defined
+* Proxy = It is a tool used to provide a single Internet access point with SSL termination in order to check encrypted traffic
 
 ## Overview
 Predator has been designed to reach following needs:
@@ -48,5 +48,6 @@ MITM for SSL termination and possibility to pattern checking based on rules prev
 ### Dummy
 Traffic decryption through Proxy module and replication to internal network for third parties analysis (such Suricata)
 
-On HTTP connection, Host field in header is isolated if available and propagated in log visibility in order to whitelist if host is safe
-On HTTPS connection with no SSL termination, SNI field in TLS extensions is isolated if available and propagated in log visibility in order to whitelist if host is safe
+## Custom tags
+* On HTTP connection, Host field in header is isolated if available and propagated in log visibility in order to whitelist if host is safe
+* On HTTPS connection with no SSL termination, SNI field in TLS extensions is isolated if available and propagated in log visibility in order to whitelist if host is safe
