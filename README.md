@@ -46,6 +46,25 @@ Default in config.py is True
 ```
 IDS = True
 ```
+### API
+API handles interaction among users and system (such updating rules without restart tool)
+Features available are:
+* help, listing features available
+```
+curl -XPOST http://127.0.0.1:10000 -H "content-type: application/json" -d "{\"func\":\"help\"}"
+```
+* createca, creating Certification Authority certificate usable to intercept SSL traffic in proxy module
+```
+curl -XPOST http://127.0.0.1:10000 -H "content-type: application/json" -d "{\"func\":\"createca\"}"
+```
+* loadjson, loading of new rules saved in rule config path without restarting tool; example with JSON file named test.json based in /opt/predator/conf/json as default
+```
+curl -XPOST http://127.0.0.1:10000 -H "content-type: application/json" -d "{\"func\":\"loadjson\",\"file_json\":\"test.json\"}"
+```
+Default in config.py is True
+```
+API = True
+```
 ### Proxy
 MITM for SSL termination and possibility to pattern checking based on rules previously described; default in config.py is False
 ```
@@ -64,7 +83,7 @@ After CA has been generated, proxy can be set in order to perform traffic inspec
 ### Dummy
 Traffic decryption through Proxy module and replication to internal network for third parties analysis (such Suricata); default in config.py is False
 ```
-SEND_TO_DUMMY = False
+DUMMY = False
 ```
 
 ## Custom tags
