@@ -51,6 +51,16 @@ MITM for SSL termination and possibility to pattern checking based on rules prev
 ```
 PROXY = False
 ```
+To generate CA in order to perform MITM following commands are required:
+```
+curl -XPOST http://127.0.0.1:10000 -H "content-type: application/json" -d "{\"func\":\"createca\"}"
+curl -x http://127.0.0.1:7777 http://predator.fuck
+```
+Default configuration in config.py set proxy address to 127.0.0.1
+```
+PROXY_HOST = "127.0.0.1"
+```
+After CA has been generated, proxy can be set in order to perform traffic inspection
 ### Dummy
 Traffic decryption through Proxy module and replication to internal network for third parties analysis (such Suricata); default in config.py is False
 ```
