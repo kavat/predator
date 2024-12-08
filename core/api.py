@@ -17,7 +17,27 @@ def post_actions(data):
   msg = ""
   if 'func' in data:
     if data["func"] == "help":
-      msg = "createca|loadjson|status|setloglevel"
+      msg = "createca|loadjson|status|setloglevel|conf"
+    elif data["func"] == "conf":
+      if config.IDS:
+        msg = "IDS: enabled\n"
+      else:
+        msg = "IDS: disabled\n"
+      if config.PROXY:
+        msg = "PROXY enabled\n"
+      else:
+        msg = "PROXY disabled\n"
+      msg = "{}PROXY IP/PORT: {}:{}\n".format(msg, config.PROXY_HOST, config.PROXY_PORT))
+      if config.API:
+        msg = "API enabled\n"
+      else:
+        msg = "API disabled\n"
+      msg = "{}API IP/PORT: {}:{}\n".format(msg, config.MANAGEMENT_HOST, config.MANAGEMENT_PORT))
+      if config.DUMMY:
+        msg = "DUMMY enabled\n"
+      else:
+        msg = "DUMMY disabled\n"
+      msg = "{}DUMMY IP/PORT: {}:{}\n".format(msg, config.DUMMY_HOST, config.DUMMY_PORT))
     elif data["func"] == "createca":
       if os.path.exists(config.CA_CRT):
         os.remove(config.CA_CRT)
@@ -72,7 +92,14 @@ def index():
     else:
       return '404'
   if request.method == 'GET':
-    return {"alive":"yes"}
+    rcv_data = json.loads(request.args)
+    rsp = post_actions(rcv_data)
+      if rsp:
+        return rsp
+      else:
+        return '200'
+    else:
+      return '404'
 
 def start_api(host, port):
   try:
