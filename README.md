@@ -65,6 +65,11 @@ Default in config.py is True
 ```
 API = True
 ```
+and set dummy address to 127.0.0.1 on TCP/10000
+```
+MANAGEMENT_HOST = "127.0.0.1"
+MANAGEMENT_PORT = 10000
+```
 User is helped by a simply webui in order to interact with Predator (as default console is reacheable at http://127.0.0.1:10000)
 
 ![Predator WebUI](screenshots/api.png)
@@ -78,9 +83,10 @@ To generate CA in order to perform MITM following commands are required:
 curl -XPOST http://127.0.0.1:10000/api -H "content-type: application/json" -d "{\"func\":\"createca\"}"
 curl -x http://127.0.0.1:7777 http://predator.fuck
 ```
-Default configuration in config.py set proxy address to 127.0.0.1
+Default configuration in config.py set proxy address to 127.0.0.1 on TCP/7777
 ```
 PROXY_HOST = "127.0.0.1"
+PROXY_PORT = 7777
 ```
 After CA has been generated, proxy can be set in order to perform traffic inspection
 ### Dummy
@@ -88,7 +94,11 @@ Traffic decryption through Proxy module and replication to internal network for 
 ```
 DUMMY = False
 ```
-
+and set dummy address to 127.0.0.1 on TCP/9999
+```
+DUMMY_HOST = "127.0.0.1"
+DUMMY_PORT = 9999
+```
 ## Custom tags
 * On HTTP connection, Host field in header is isolated if available and propagated in log visibility in order to whitelist if host is safe
 * On HTTPS connection with no SSL termination, SNI field in TLS extensions is isolated if available and propagated in log visibility in order to whitelist if host is safe
