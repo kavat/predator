@@ -65,6 +65,9 @@ Default in config.py is True
 ```
 API = True
 ```
+User is helped by a simply webui in order to interact with Predator (as default console is reacheable at http://127.0.0.1:10000)
+
+![Predator WebUI](screenshots/api.png)
 ### Proxy
 MITM for SSL termination and possibility to pattern checking based on rules previously described; default in config.py is False
 ```
