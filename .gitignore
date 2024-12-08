@@ -1,3 +1,6 @@
-./conf/json
-./var/run
-./var/log
+certs/
+conf/json
+var/run
+var/log
+__pycache__/
+core/__pycache__/

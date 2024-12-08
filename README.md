@@ -51,15 +51,15 @@ API handles interaction among users and system (such updating rules without rest
 Features available are:
 * help, listing features available
 ```
-curl -XPOST http://127.0.0.1:10000 -H "content-type: application/json" -d "{\"func\":\"help\"}"
+curl -XPOST http://127.0.0.1:10000/api -H "content-type: application/json" -d "{\"func\":\"help\"}"
 ```
 * createca, creating Certification Authority certificate usable to intercept SSL traffic in proxy module
 ```
-curl -XPOST http://127.0.0.1:10000 -H "content-type: application/json" -d "{\"func\":\"createca\"}"
+curl -XPOST http://127.0.0.1:10000/api -H "content-type: application/json" -d "{\"func\":\"createca\"}"
 ```
 * loadjson, loading of new rules saved in rule config path without restarting tool; example with JSON file named test.json based in /opt/predator/conf/json as default
 ```
-curl -XPOST http://127.0.0.1:10000 -H "content-type: application/json" -d "{\"func\":\"loadjson\",\"file_json\":\"test.json\"}"
+curl -XPOST http://127.0.0.1:10000/api -H "content-type: application/json" -d "{\"func\":\"loadjson\",\"file_json\":\"test.json\"}"
 ```
 Default in config.py is True
 ```
@@ -72,7 +72,7 @@ PROXY = False
 ```
 To generate CA in order to perform MITM following commands are required:
 ```
-curl -XPOST http://127.0.0.1:10000 -H "content-type: application/json" -d "{\"func\":\"createca\"}"
+curl -XPOST http://127.0.0.1:10000/api -H "content-type: application/json" -d "{\"func\":\"createca\"}"
 curl -x http://127.0.0.1:7777 http://predator.fuck
 ```
 Default configuration in config.py set proxy address to 127.0.0.1

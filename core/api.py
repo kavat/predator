@@ -1,5 +1,4 @@
-from flask import Flask
-from flask import request
+from flask import Flask, request, render_template
 from core.utils import parse_json
 from core.networking import check_tcp_conn
 from core.library import Library
@@ -20,24 +19,24 @@ def post_actions(data):
       msg = "createca|loadjson|status|setloglevel|conf"
     elif data["func"] == "conf":
       if config.IDS:
-        msg = "IDS: enabled\n"
+        msg = "IDS: enabled<br>"
       else:
-        msg = "IDS: disabled\n"
+        msg = "IDS: disabled<br>"
       if config.PROXY:
-        msg = "PROXY enabled\n"
+        msg = "{}PROXY enabled<br>".format(msg)
       else:
-        msg = "PROXY disabled\n"
-      msg = "{}PROXY IP/PORT: {}:{}\n".format(msg, config.PROXY_HOST, config.PROXY_PORT))
+        msg = "{}PROXY disabled<br>".format(msg)
+      msg = "{}PROXY IP/PORT: {}:{}<br>".format(msg, config.PROXY_HOST, config.PROXY_PORT)
       if config.API:
-        msg = "API enabled\n"
+        msg = "{}API enabled<br>".format(msg)
       else:
-        msg = "API disabled\n"
-      msg = "{}API IP/PORT: {}:{}\n".format(msg, config.MANAGEMENT_HOST, config.MANAGEMENT_PORT))
+        msg = "{}API disabled<br>".format(msg)
+      msg = "{}API IP/PORT: {}:{}<br>".format(msg, config.MANAGEMENT_HOST, config.MANAGEMENT_PORT)
       if config.DUMMY:
-        msg = "DUMMY enabled\n"
+        msg = "{}DUMMY enabled<br>".format(msg)
       else:
-        msg = "DUMMY disabled\n"
-      msg = "{}DUMMY IP/PORT: {}:{}\n".format(msg, config.DUMMY_HOST, config.DUMMY_PORT))
+        msg = "{}DUMMY disabled<br>".format(msg)
+      msg = "{}DUMMY IP/PORT: {}:{}<br>".format(msg, config.DUMMY_HOST, config.DUMMY_PORT)
     elif data["func"] == "createca":
       if os.path.exists(config.CA_CRT):
         os.remove(config.CA_CRT)
@@ -50,15 +49,15 @@ def post_actions(data):
       for old_cert in glob(os.path.join(config.CERT_DIR, "*.pem")):
         os.remove(old_cert)
       if os.path.exists(config.CA_CRT): 
-        msg = "CA creata correttamente, scaricala collegandoti al link " + config.LINK_DOWNLOAD_CA
+        msg = "Certification authority created, please download it from {} after set Predator as proxy".format(config.LINK_DOWNLOAD_CA)
     elif data["func"] == "loadjson":
       if 'file_json' in data:
         if os.path.exists(config.PATH_JSON + data['file_json']):
           msg = data['file_json'] + " " + Library().client("feed_add|{}".format(data['file_json']))
         else:
-          msg = "File " + data['file_json'] + " non trovato"
+          msg = "File " + data['file_json'] + " not found"
       else:
-        msg = "Nome file non passato come argomento"
+        msg = Library().client("json_reload|")
     elif data["func"] == "status":
       msg = "UP"
     elif data["func"] == "setloglevel":
@@ -79,8 +78,8 @@ def post_actions(data):
   else:
     return {"func":"nofunc"}
 
-@app.route("/", methods=['GET', 'POST'])
-def index():
+@app.route("/api", methods=['GET', 'POST'])
+def api():
   if request.method == 'POST':
     if request.data:
       rcv_data = json.loads(request.data.decode(encoding='utf-8'))
@@ -92,14 +91,19 @@ def index():
     else:
       return '404'
   if request.method == 'GET':
-    rcv_data = json.loads(request.args)
+    rcv_data = request.args.to_dict(flat=True)
+    if 'func' not in rcv_data:
+      rcv_data['func'] = 'home'
+    print(rcv_data)
     rsp = post_actions(rcv_data)
-      if rsp:
-        return rsp
-      else:
-        return '200'
+    if rsp:
+      return rsp
     else:
-      return '404'
+      return '200'
+
+@app.route("/", methods=['GET'])
+def index():
+  return render_template('index.html', host=config.MANAGEMENT_HOST, port=config.MANAGEMENT_PORT, json_path=config.PATH_JSON)
 
 def start_api(host, port):
   try:

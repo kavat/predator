@@ -76,6 +76,9 @@ class Library:
           messaggio = ricevuto.split("|")[2]
           config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().debug("Ricevuto da {}: {} - {}".format(client, func, messaggio))
           inviato = "no_func"
+          if func == "json_reload":
+            inviato = "ack"
+            self.init_rules()
           if func == "feed_add":
             if os.path.exists(config.PATH_JSON + messaggio):
               inviato = "ack"
