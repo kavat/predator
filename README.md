@@ -155,6 +155,21 @@ SEND_TO_DUMMY = False
 SEND_TO_SYSLOG = False
 ```
 
+## Start
+After installing dependencies
+```
+pip3 install scapy
+pip3 install flask
+```
+you can proceed launching tool; Predator is easy to start and you can do it with
+```
+python3 ./predator.py
+```
+or
+```
+./predator.sh start
+```
+
 ## Screenshots
 * Status
 ![Status](screenshots/status.png)
