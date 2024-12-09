@@ -303,13 +303,13 @@ class HttpProxy(BaseHTTPRequestHandler):
       self.wfile.flush()
       
       analyze_request(req, req_body, res, res_body, self, req.headers["Host"])
-      if config.SEND_TO_DUMMY:
+      if config.DUMMY:
         self.duplicate_packet(self.command, path, req_body, dict(req.headers), res.status, res_body, dict(res.headers), netloc, origin, self.tls.conns[origin])
 
     except Exception as e:
       if type(e).__name__ != "socket.timeout" and type(e).__name__ != "timeout" and type(e).__name__ != "OSError" and type(e).__name__ != "BrokenPipeError":
         config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().critical(e, exc_info=True)
-      if config.SEND_TO_DUMMY:
+      if config.DUMMY:
         self.duplicate_packet(self.command, path, req_body, dict(req.headers), 200, "Richiesta bloccata", {}, netloc, origin, self.tls.conns[origin])
       if origin in self.tls.conns:
         del self.tls.conns[origin]
