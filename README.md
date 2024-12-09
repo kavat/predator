@@ -90,7 +90,7 @@ PROXY_PORT = 7777
 ```
 After CA has been generated, proxy can be set in order to perform traffic inspection
 ### Dummy
-Traffic decryption through Proxy module and replication to internal network for third parties analysis (such Suricata); default in config.py is False
+Traffic decryption through Proxy module replication to internal network for third parties analysis (such Suricata); default in config.py is False
 ```
 DUMMY = False
 ```
@@ -157,5 +157,6 @@ SEND_TO_SYSLOG = False
 
 ## Screenshots
 * Status
-
 ![Status](screenshots/status.png)
+* Threats identified
+![Threats](screenshots/threats.png)
