@@ -705,12 +705,12 @@ def analyze_request(req, req_body, res, res_body, proxy_request, hostname):
     res.headers,
   )
 
-  log_record_req(req_header_text, req, "req_header_text", proxy_request, hostname, "info")
+  log_record_req(req_header_text, req, "req_header_text", proxy_request, hostname, "debug")
 
   u = urllib.parse.urlsplit(req.path)
   if u.query:
     query_text = parse_qsl(u.query)
-    log_record_req(query_text, req, "query_text", proxy_request, hostname, "info")
+    log_record_req(query_text, req, "query_text", proxy_request, hostname, "debug")
 
   cookie = req.headers.get("Cookie", "")
   if cookie:
@@ -750,7 +750,7 @@ def analyze_request(req, req_body, res, res_body, proxy_request, hostname):
     if req_body_text:
       log_record_req(req_body_text, req, "req_body_text", proxy_request, hostname, "debug")
 
-  log_record_res(res_header_text, res, "res_header_text", proxy_request, req.address_string(), hostname, "info")
+  log_record_res(res_header_text, res, "res_header_text", proxy_request, req.address_string(), hostname, "debug")
 
   cookies = res.headers.get("Set-Cookie")
   if cookies:
@@ -777,7 +777,7 @@ def analyze_request(req, req_body, res, res_body, proxy_request, hostname):
     elif content_type.startswith("text/html"):
       m = re.search(rb"<title[^>]*>\s*([^<]+?)\s*</title>", res_body, re.I)
       if m:
-        log_record_res(m.group(1).decode(), res, "html_title", proxy_request, req.address_string(), hostname, "info")
+        log_record_res(m.group(1).decode(), res, "html_title", proxy_request, req.address_string(), hostname, "debug")
     else:
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().warn(proxy_request.id_thread + " - Unknown Content-Type: " + content_type)
 

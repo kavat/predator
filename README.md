@@ -169,6 +169,7 @@ or
 ```
 ./predator.sh start
 ```
+Root privileges are required.
 
 ## Screenshots
 * Status
