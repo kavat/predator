@@ -160,6 +160,7 @@ After installing dependencies
 ```
 pip3 install scapy
 pip3 install flask
+pip3 install syslog
 ```
 you can proceed launching tool; Predator is easy to start and you can do it with
 ```
