@@ -166,6 +166,7 @@ pip3 install scapy
 pip3 install flask
 pip3 install brotli
 pip3 install websocket
+pip3 install cryptography
 mkdir -p /opt/predator/var/{log,run}
 ``
 
