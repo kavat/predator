@@ -162,7 +162,11 @@ pip3 install scapy
 pip3 install flask
 pip3 install syslog
 ```
-you can proceed launching tool; Predator is easy to start and you can do it with
+and has downloaded project (example in /opt/predator), create first directories required, as
+```
+mkdir -p /opt/predator/var/{log,run}
+```
+You can proceed now launching tool; Predator is easy to start and you can do it with
 ```
 python3 ./predator.py
 ```
