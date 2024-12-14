@@ -106,7 +106,7 @@ status() {
     fi
   fi
   echo "Predator logs status: "
-  ls -lh ${LOG_PATH}/predator*.log
+  ls -lht ${LOG_PATH}/predator*.log
 }
 
 start() {
