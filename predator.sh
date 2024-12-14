@@ -167,7 +167,7 @@ restart() {
 }
 
 case "$1" in
-  update)
+  rules)
     if [ "$2" != "" ] && [ "$3" != "" ]; then
       echo "Updating for ${2} and ${3}.."
       update "$2" "$3"
@@ -206,5 +206,5 @@ case "$1" in
     status
   ;;
   *)
-  echo "Usage: $0 {start|stop|restart|update|check_json|clean|status|tail}"
+  echo "Usage: $0 {start|stop|restart|rules|check_json|clean|status|tail}"
 esac

@@ -166,6 +166,10 @@ and has downloaded project (example in /opt/predator), create first directories 
 ```
 mkdir -p /opt/predator/var/{log,run}
 ```
+First launch has no rule assigned, proceed launching
+```
+/opt/predator/predator.sh rules
+```
 You can proceed now launching tool; Predator is easy to start and you can do it with
 ```
 python3 ./predator.py
