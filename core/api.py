@@ -16,7 +16,12 @@ def post_actions(data):
   msg = ""
   if 'func' in data:
     if data["func"] == "help":
-      msg = "createca|loadjson|status|setloglevel|conf"
+      msg = "createca|loadjson|status|setloglevel|conf|check_ip"
+    elif data["func"] == "check_ip":
+      if 'ip' in data:
+        msg = data["ip"] + " blacklisted: " + Library().client("blacklist_ip|{}".format(data["ip"])
+      else:
+        msg = "IP missed"
     elif data["func"] == "conf":
       if config.IDS:
         msg = "IDS: enabled<br>"
