@@ -98,7 +98,7 @@ status() {
   if [ "${test_port}" != "" ]; then
     echo "up"
   else
-    check_conf=$(cat ${CONF_PATH} | grep "^SEND_TO_DUMMY = False")
+    check_conf=$(cat ${CONF_PATH} | grep "^DUMMY = False")
     if [ "${check_conf}" != "" ]; then
       echo "disabled"
     else
