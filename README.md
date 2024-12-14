@@ -155,22 +155,26 @@ SEND_TO_DUMMY = False
 SEND_TO_SYSLOG = False
 ```
 
-## Start
-After installing dependencies
-```
-pip3 install scapy
+## Dependencies
+After cloning project (example in /opt/predator):
+``
+apt install python3 python3-pip python3-venv
+cd /opt/predator
+python3 -m venv predator_env
+source predator_env/bin/activate
+pip3 install scapy 
 pip3 install flask
-pip3 install syslog
-```
-and has downloaded project (example in /opt/predator), create first directories required, as
-```
 mkdir -p /opt/predator/var/{log,run}
-```
-First launch has no rule assigned, proceed launching
+``
+
+## Start
+After installing dependencies, you are ready to launch Predator. 
+First launch has no rule loaded, proceed launching
 ```
 /opt/predator/predator.sh rules
 ```
-You can proceed now launching tool; Predator is easy to start and you can do it with
+Rules can be managed next using API.
+You can proceed now launching tool; Predator is easy to start and you can do it with following commands (if you have created venv remember to active it before):
 ```
 python3 ./predator.py
 ```
