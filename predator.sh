@@ -8,6 +8,7 @@ JSON_PATH="${APP_DIR}/conf/json"
 LOG_PATH="${APP_DIR}/var/log"
 PID_FILE="${APP_DIR}/var/run/predator.pid"
 PATH_ANUBI_SIGNATURES="${APP_DIR}/../anubi-signatures"
+PATH_VENV="${APP_DIR}/predator_env/"
 MANAGEMENT_HOST=$(cat ${CONF_PATH} | grep MANAGEMENT_HOST | awk -F' = ' '{print $2}')
 MANAGEMENT_PORT=$(cat ${CONF_PATH} | grep MANAGEMENT_PORT | awk -F' = ' '{print $2}')
 PROXY_PORT=$(cat ${CONF_PATH} | grep PROXY_PORT | awk -F' = ' '{print $2}')
@@ -73,31 +74,31 @@ clean_log() {
 status() {
   echo "Predator process status: "
   ps xa | grep predator.py | grep -v grep
-  echo -n "Predator management socket status: "
+  echo -en "\tPredator management socket status: "
   test_port=$(ss -antp | grep ":${MANAGEMENT_PORT}")
   if [ "${test_port}" != "" ]; then
     echo "up"
   else
     echo "down"	    
   fi
-  echo -n "Predator proxy socket status: "
+  echo -en "\tPredator proxy socket status: "
   test_port=$(ss -antp | grep ":${PROXY_PORT}")
   if [ "${test_port}" != "" ]; then
     echo "up"
   else
-    check_conf=$(cat ${CONF_PATH}/config.py | grep "^PROXY = False")
+    check_conf=$(cat ${CONF_PATH} | grep "^PROXY = False")
     if [ "${check_conf}" != "" ]; then
       echo "disabled"
     else	
       echo "down"
     fi
   fi
-  echo -n "Predator dummy socket status: "
+  echo -en "\tPredator dummy socket status: "
   test_port=$(ss -antp | grep ":${DUMMY_PORT}")
   if [ "${test_port}" != "" ]; then
     echo "up"
   else
-    check_conf=$(cat ${CONF_PATH}/config.py | grep "^SEND_TO_DUMMY = False")
+    check_conf=$(cat ${CONF_PATH} | grep "^SEND_TO_DUMMY = False")
     if [ "${check_conf}" != "" ]; then
       echo "disabled"
     else
@@ -136,14 +137,12 @@ start() {
       echo "PID not found but port ${DUMMY_PORT} is already opened"
       exit 1
     fi
-    echo "Check Intellingence json consistency.."
-    cat "${JSON_PATH}/intelligence.json" | jq . > /dev/null
     if [ $? -ne 0 ]; then
       echo "KO"
       exit 1
     fi
     echo ""
-    nohup python3 -u $APP_PATH >> ${LOG_PATH}/predator_std.log 2>&1 &
+    nohup $PATH_VENV/bin/python3 -u $APP_PATH >> ${LOG_PATH}/predator_std.log 2>&1 &
     echo $! > $PID_FILE
     echo "Service started."
 }
