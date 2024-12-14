@@ -779,7 +779,7 @@ def analyze_request(req, req_body, res, res_body, proxy_request, hostname):
       if m:
         log_record_res(m.group(1).decode(), res, "html_title", proxy_request, req.address_string(), hostname, "debug")
     elif content_type.startswith("text/plain"):
-      log_record_res(res_body.decode(), res, "plain_text", proxy_request, req.address_string(), hostname, "debug")
+      log_record_res(res_body, res, "plain_text", proxy_request, req.address_string(), hostname, "debug")
     else:
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().warn(proxy_request.id_thread + " - Unknown Content-Type: " + content_type)
 
