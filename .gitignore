@@ -4,3 +4,4 @@ var/run
 var/log
 __pycache__/
 core/__pycache__/
+predator_env/
