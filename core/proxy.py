@@ -96,10 +96,10 @@ class HttpProxy(BaseHTTPRequestHandler):
   def do_CONNECT(self):
     host, _ = self.path.split(":", 1)
     if (os.path.isfile(config.CA_KEY) and os.path.isfile(config.CA_CRT) and os.path.isfile(config.CERT_KEY) and os.path.isdir(config.CERT_DIR)):
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().info(self.id_thread + " - HTTPS mitm enabled, Intercepting...")
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().debug(self.id_thread + " - HTTPS mitm enabled, Intercepting...")
       self.connect_intercept()
     else:
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().info(self.id_thread + " - HTTPS relay only, NOT Intercepting...")
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().debug(self.id_thread + " - HTTPS relay only, NOT Intercepting...")
       self.connect_relay()
 
   def connect_intercept(self):
@@ -778,6 +778,8 @@ def analyze_request(req, req_body, res, res_body, proxy_request, hostname):
       m = re.search(rb"<title[^>]*>\s*([^<]+?)\s*</title>", res_body, re.I)
       if m:
         log_record_res(m.group(1).decode(), res, "html_title", proxy_request, req.address_string(), hostname, "debug")
+    elif content_type.startswith("text/plain"):
+      log_record_res(res_body.decode(), res, "plain_text", proxy_request, req.address_string(), hostname, "debug")
     else:
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().warn(proxy_request.id_thread + " - Unknown Content-Type: " + content_type)
 
