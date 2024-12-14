@@ -164,6 +164,8 @@ python3 -m venv predator_env
 source predator_env/bin/activate
 pip3 install scapy 
 pip3 install flask
+pip3 install brotli
+pip3 install websocket
 mkdir -p /opt/predator/var/{log,run}
 ``
 
