@@ -167,6 +167,7 @@ pip3 install flask
 pip3 install brotli
 pip3 install websocket
 pip3 install cryptography
+pip3 install geoip2
 mkdir -p /opt/predator/var/{log,run}
 ``
 

@@ -16,6 +16,7 @@ PATH_LOGGER_PREDATOR_PROXY = "{}/var/log/predator_proxy.log".format(predator_fil
 PATH_LOGGER_PREDATOR_DUMMY = "{}/var/log/predator_dummy.log".format(predator_file_path)
 PATH_LOGGER_PREDATOR_MASTER_EXCEPTIONS = "{}/var/log/predator_boom.log".format(predator_file_path)
 PATH_JSON = "{}/conf/json/".format(predator_file_path)
+PATH_MMDB = "{}/../anubi-signatures/geo/GeoLite2-City.mmdb".format(predator_file_path)
 
 SOCKET_LIBRARY = "{}/var/run/library.sock".format(predator_file_path)
 SOCKET_LIBRARY_BASE_CLIENT = "{}/var/run/".format(predator_file_path)

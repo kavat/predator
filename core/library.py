@@ -3,6 +3,7 @@ import socket
 import os
 import time
 import json
+import geoip2.database
 
 from threading import Lock
 from core.common_utils import (
@@ -24,6 +25,23 @@ class Library:
     self.whitelist_lock = Lock()
     self.dns = {}
     self.dns_lock = Lock()
+    self.threats = {}
+    self.threats_lock = Lock()
+    try:
+      self.geoloc_db = geoip2.database.Reader(config.PATH_MMDB)
+    except:
+      self.geoloc_db = False
+    self.geoloc_db_lock = Lock()
+
+  def geoloc_ip(self, ip):
+    ritorno = {'country':'ND', 'city':'ND', 'latitude':'ND', 'longitude':'ND'}
+    try:
+      if self.geoloc_db != False:
+        response = self.geoloc_db.city(ip)
+        ritorno = {'country':response.country.name, 'city':response.city.name, 'latitude':response.location.latitude, 'longitude':response.location.longitude}
+    except geoip2.errors.AddressNotFoundError:
+      ritorno = {'country':'ND', 'city':'ND', 'latitude':'ND', 'longitude':'ND'}
+    return ritorno
 
   def init_rules(self):
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().info("Carico le regole..")
@@ -160,6 +178,34 @@ class Library:
             a_d = {messaggio:{qname:percorso}}
             self.upd_dns(a_d)
             inviato = "ack"
+          if func == "add_threat":
+            inviato = "ack"
+            src = messaggio.split(",")[0]
+            dst = messaggio.split(",")[1]
+            sport = messaggio.split(",")[2]
+            dport = messaggio.split(",")[3]
+            protocol = messaggio.split(",")[4]
+            flags = messaggio.split(",")[5]
+            event = messaggio.split(",")[6]
+            evento = {"timestamp":round(time.time()), "src":src, "dst":dst, "sport":sport, "dport":dport, "protocol":protocol, "flags":flags, "event":event, "geo_src":self.geoloc_ip(src), "geo_dst":self.geoloc_ip(dst)}
+            self.upd_threats(evento)
+          if func == "threats":
+            threats_list = []
+            if messaggio == "all":
+              inviato = "Threats no filtered<br>"
+              threats_list = self.threats
+            else:
+              inviato = "Threats filtered for {}<br>".format(messaggio)
+              if messaggio in self.threats:
+                threats_list[messaggio] = self.threats[messaggio]
+            if len(threats_list) == 0:
+              inviato = "{}no_data".format(inviato)
+            else:
+              inviato = "{}<br><table cellspacing=0 cellpadding=0 border=1><tr><td>TIMESTAMP</td><td>SRC</td><td>DST</td><td>PROTOCOL</td><td>FLAGS</td><td>EVENT</td></tr>".format(inviato)  
+              for ip in threats_list:
+                for threat in threats_list[ip]:
+                  inviato = "{}<tr><td>{}</td><td>{}:{}</td><td>{}:{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(inviato, threat["timestamp"], threat["src"], threat["sport"], threat["dst"], threat["dport"], threat["protocol"], threat["flags"], threat["event"])
+              inviato = "{}</table>".format(inviato)
           server.sendto(str.encode(inviato), client)
       except BlockingIOError:
         pass
@@ -203,6 +249,15 @@ class Library:
   def upd_pattern_tcp_udp(self, cnt):
     with self.pattern_tcp_udp_lock:
       self.pattern_tcp_udp = cnt
+
+  def upd_threats(self, cnt):
+    with self.threats_lock:
+      if cnt['src'] not in self.threats:
+        self.threats[cnt['src']] = []
+      self.threats[cnt['src']].append(cnt)
+      if cnt['dst'] not in self.threats:
+        self.threats[cnt['dst']] = []
+      self.threats[cnt['dst']].append(cnt)
 
 def start_library_server():
   try:

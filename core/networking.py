@@ -116,6 +116,7 @@ class PredatorPacketAnalysis:
             check_content_packet = inspect_packet_content(packet[Raw].load)
             type_reporting = ""
             if check_content_packet != "":
+              Library().client("add_threat|{},{},{},{},{},{},L7".format(packet[IP].src, packet[IP].dst, sport, dport, proto, flags))
               config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical("LOG=PREDATOR_THREAT SRC=" + str(packet[IP].src) + " SPORT=" + str(sport) + " DST=" + str(packet[IP].dst) + " DPORT=" + str(dport) + " PROTO=" + str(proto) + " FLAGS=" + flags + " WHITELISTED_CONTENT=N PAYLOAD=" + str(check_content_packet) + " REPORTING=" + type_reporting  + " EVENT=LAYER7")
           if packet.haslayer(TLS):
             conf.tls_session_enable = True
@@ -147,7 +148,8 @@ class PredatorPacketAnalysis:
                 content_size = get_connection_content_size(self.get_handler(), packet[IP].dst, dport, packet[IP].src, sport, "evil_dst", flags)
                 content_session_id = get_connection_content_session_id(self.get_handler(), packet[IP].dst, dport, packet[IP].src, sport, "evil_dst", flags)
                 host = get_host_from_header(self.get_handler(), packet[IP].dst, dport, packet[IP].src, sport, "evil_dst", flags)
-                stringa_log = "LOG=PREDATOR_THREAT SRC=" + str(packet[IP].src) + " SPORT=" + str(sport) + " DST=" + str(packet[IP].dst) + " DPORT=" + str(dport) + " PROTO=" + str(proto) + " FLAGS=" + flags + " WHITELISTED_CONTENT=" + content_whitelisted + " CONTENT_SIZE=" + str(content_size) + " CONTENT_SESSION_ID=" + content_session_id + " EVENT=LAYER4_DST REPORTING=" + type_ip_fqdn_warn + " FQDN=" + str(fqdn) + " SNI=" + str(sni) + " HOST=" + host + " "
+                Library().client("add_threat|{},{},{},{},{},{},L4".format(packet[IP].src, packet[IP].dst, sport, dport, proto, flags))
+                stringa_log = "LOG=PREDATOR_THREAT SRC=" + str(packet[IP].src) + " SPORT=" + str(sport) + " DST=" + str(packet[IP].dst) + " DPORT=" + str(dport) + " PROTO=" + str(proto) + " FLAGS=" + flags + " WHITELISTED_CONTENT=" + content_whitelisted + " CONTENT_SIZE=" + str(content_size) + " CONTENT_SESSION_ID=" + content_session_id + " EVENT=LAYER4_DST REPORTING=" + type_ip_fqdn_warn + " SNI=" + str(sni) + " HOST=" + host + " "
                 config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
                 if config.SEND_TO_SYSLOG == True:
                   syslog.syslog(stringa_log)
@@ -177,7 +179,8 @@ class PredatorPacketAnalysis:
                 content_size = get_connection_content_size(self.get_handler(), packet[IP].dst, dport, packet[IP].src, sport, "evil_src", flags)
                 content_session_id = get_connection_content_session_id(self.get_handler(), packet[IP].dst, dport, packet[IP].src, sport, "evil_src", flags)
                 host = get_host_from_header(self.get_handler(), packet[IP].dst, dport, packet[IP].src, sport, "evil_src", flags)
-                stringa_log = "LOG=PREDATOR_THREAT SRC=" + str(packet[IP].src) + " SPORT=" + str(sport) + " DST=" + str(packet[IP].dst) + " DPORT=" + str(dport) + " PROTO=" + str(proto) + " FLAGS=" + flags + " WHITELISTED_CONTENT=" + content_whitelisted + " CONTENT_SIZE=" + str(content_size) + " CONTENT_SESSION_ID=" + content_session_id + " EVENT=LAYER4_SRC REPORTING=" + type_ip_fqdn_warn + " FQDN=" + str(fqdn) + " SNI=" + str(sni) + " HOST=" + host + " " 
+                Library().client("add_threat|{},{},{},{},{},{},L4".format(packet[IP].src, packet[IP].dst, sport, dport, proto, flags))
+                stringa_log = "LOG=PREDATOR_THREAT SRC=" + str(packet[IP].src) + " SPORT=" + str(sport) + " DST=" + str(packet[IP].dst) + " DPORT=" + str(dport) + " PROTO=" + str(proto) + " FLAGS=" + flags + " WHITELISTED_CONTENT=" + content_whitelisted + " CONTENT_SIZE=" + str(content_size) + " CONTENT_SESSION_ID=" + content_session_id + " EVENT=LAYER4_SRC REPORTING=" + type_ip_fqdn_warn + " SNI=" + str(sni) + " HOST=" + host + " " 
                 config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
                 if config.SEND_TO_SYSLOG == True:
                   syslog.syslog(stringa_log)

@@ -19,10 +19,13 @@
         if(api == "check_ip") {
           url_to_call = url_to_call + "&ip=" + encodeURIComponent(document.getElementById('txt_2').value);
         }
+        if(api == "threats") {
+          url_to_call = url_to_call + "&ip=" + encodeURIComponent(document.getElementById('txt_3').value);
+        }
         xmlHttp.open("GET", url_to_call, false); // false for synchronous request
         xmlHttp.send(null);
         var risp = JSON.parse(xmlHttp.responseText);
-        if(api == "conf" || api == "createca") {
+        if(api == "conf" || api == "createca" || api == "threats") {
           document.getElementById(div_arg).innerHTML = risp["msg"];
         }
         else {
@@ -72,8 +75,14 @@
         <td><input type="text" value="" id="txt_2"></td>
         <td><input onclick="exec_api('check_ip', '');" type="button" value="RUN"></td>
       </tr>
+      <tr>
+        <td>Threats</td>
+        <td>Get threats raised (all or filtered by IP)</td>
+        <td><input type="text" value="" id="txt_3"></td>
+        <td><input onclick="exec_api('threats', 'output');" type="button" value="RUN"></td>
+      </tr>
     </table>
-    <br><br><br><br><br>
+    <br><br><br><br><br><br><br><br><br>
     <div id='output'></div>
   </body>
 </html>
