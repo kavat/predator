@@ -59,6 +59,8 @@ Provides user interaction with the system, such as updating rules without restar
   ```bash
   curl -XPOST http://127.0.0.1:10000/api -H "content-type: application/json" -d '{"func":"loadjson","file_json":"test.json"}'
   ```
+  if no file_json parameter is provided, all rules will be reloaded
+
 
 #### Default Settings
 - Enabled in `config.py`:
