@@ -6,127 +6,119 @@ from subprocess import PIPE, Popen
 from glob import glob
 
 import json
-import copy
-import config
 import os
+import config
 
 app = Flask(__name__)
 
-def post_actions(data):
-  msg = ""
-  if 'func' in data:
-    if data["func"] == "help":
-      msg = "threats|createca|loadjson|status|setloglevel|conf|check_ip"
-    elif data["func"] == "threats":
-      if 'ip' in data and data['ip'] != "":
-        msg = Library().client("threats|{}".format(data["ip"]))
-      else:
-        msg = Library().client("threats|all")
-    elif data["func"] == "check_ip":
-      if 'ip' in data:
-        msg = data["ip"] + " blacklisted: " + Library().client("blacklist_ip|{}".format(data["ip"]))
-      else:
-        msg = "IP missed"
-    elif data["func"] == "conf":
-      if config.IDS:
-        msg = "IDS: enabled<br>"
-      else:
-        msg = "IDS: disabled<br>"
-      if config.PROXY:
-        msg = "{}PROXY enabled<br>".format(msg)
-      else:
-        msg = "{}PROXY disabled<br>".format(msg)
-      msg = "{}PROXY IP/PORT: {}:{}<br>".format(msg, config.PROXY_HOST, config.PROXY_PORT)
-      if config.API:
-        msg = "{}API enabled<br>".format(msg)
-      else:
-        msg = "{}API disabled<br>".format(msg)
-      msg = "{}API IP/PORT: {}:{}<br>".format(msg, config.MANAGEMENT_HOST, config.MANAGEMENT_PORT)
-      if config.DUMMY:
-        msg = "{}DUMMY enabled<br>".format(msg)
-      else:
-        msg = "{}DUMMY disabled<br>".format(msg)
-      msg = "{}DUMMY IP/PORT: {}:{}<br>".format(msg, config.DUMMY_HOST, config.DUMMY_PORT)
-    elif data["func"] == "createca":
-      if os.path.exists(config.CA_CRT):
-        os.remove(config.CA_CRT)
-      if os.path.exists(config.CA_KEY):
-        os.remove(config.CA_KEY)
-      Popen(["openssl", "genrsa", "-out", config.CA_KEY, str(config.CA_KEY_SIZE)]).communicate()
-      Popen(["openssl", "req", "-new", "-x509", "-days", "3650", "-key", config.CA_KEY, "-sha256", "-out", config.CA_CRT, "-subj", "/CN=Predator CA", ]).communicate()
-      Popen(["openssl", "genrsa", "-out", config.CERT_KEY, str(config.CERT_KEY_SIZE)]).communicate()
-      os.makedirs(config.CERT_DIR, exist_ok=True)
-      for old_cert in glob(os.path.join(config.CERT_DIR, "*.pem")):
-        os.remove(old_cert)
-      if os.path.exists(config.CA_CRT): 
-        msg = "Certification authority created, please download it from {} after set Predator as proxy".format(config.LINK_DOWNLOAD_CA)
-    elif data["func"] == "loadjson":
-      if 'file_json' in data:
-        if os.path.exists(config.PATH_JSON + data['file_json']):
-          msg = data['file_json'] + " " + Library().client("feed_add|{}".format(data['file_json']))
-        else:
-          msg = "File " + data['file_json'] + " not found"
-      else:
-        msg = Library().client("json_reload|")
-    elif data["func"] == "status":
-      msg = "UP"
-    elif data["func"] == "setloglevel":
-      if "logger_name" in data and "logger_level" in data:
-        if data["logger_name"] in config.LOGGERS["ASSOC"]:
-          if data["logger_level"] in config.LOGGERS["LEVELS"]:
-            config.LOGGERS["RESOURCES"][config.LOGGERS["ASSOC"][data["logger_name"]]].set_level(data["logger_level"])
-            msg = "Impostato livello " + data["logger_level"] + " per " + config.LOGGERS["ASSOC"][data["logger_name"]]
-          else:
-            risposta = data["logger_level"] + " non impostabile"
-        else:
-          risposta = data["logger_name"] + " non presente tra i loggers"
-      else:
-        risposta = "LoggerName o LoggerLevel non passato come argomento"
-    else:
-      msg = "Funzione non gestita"
-    return {"func":data["func"],"msg":msg}
-  else:
-    return {"func":"nofunc"}
+def generate_conf_message():
+  conf_message = [
+    f"IDS: {'enabled' if config.IDS else 'disabled'}<br>",
+    f"PROXY: {'enabled' if config.PROXY else 'disabled'}<br>",
+    f"PROXY IP/PORT: {config.PROXY_HOST}:{config.PROXY_PORT}<br>",
+    f"API: {'enabled' if config.API else 'disabled'}<br>",
+    f"API IP/PORT: {config.MANAGEMENT_HOST}:{config.MANAGEMENT_PORT}<br>",
+    f"DUMMY: {'enabled' if config.DUMMY else 'disabled'}<br>",
+    f"DUMMY IP/PORT: {config.DUMMY_HOST}:{config.DUMMY_PORT}<br>",
+  ]
+  return "".join(conf_message)
 
-@app.route("/api", methods=['GET', 'POST'])
+
+def create_certificate_authority():
+  for file_path in [config.CA_CRT, config.CA_KEY]:
+    if os.path.exists(file_path):
+      os.remove(file_path)
+
+  commands = [
+    ["openssl", "genrsa", "-out", config.CA_KEY, str(config.CA_KEY_SIZE)],
+    ["openssl", "req", "-new", "-x509", "-days", "3650", "-key", config.CA_KEY, "-sha256", "-out", config.CA_CRT, "-subj", "/CN=Predator CA"],
+    ["openssl", "genrsa", "-out", config.CERT_KEY, str(config.CERT_KEY_SIZE)],
+  ]
+  for cmd in commands:
+    Popen(cmd).communicate()
+
+  os.makedirs(config.CERT_DIR, exist_ok=True)
+  for old_cert in glob(os.path.join(config.CERT_DIR, "*.pem")):
+    os.remove(old_cert)
+
+  if os.path.exists(config.CA_CRT):
+    return f"Certification authority created. Download it from {config.LINK_DOWNLOAD_CA} after setting Predator as proxy."
+  return "Error creating certification authority."
+
+
+def handle_post_actions(data):
+  func = data.get("func")
+  if not func:
+    return {"func": "nofunc", "msg": "No function provided"}
+
+  if func == "help":
+    return {"func": func, "msg": "threats|createca|loadjson|status|setloglevel|conf|check_ip"}
+    
+  library = Library()
+    
+  if func == "threats":
+    ip = data.get("ip", "")
+    return {"func": func, "msg": library.client(f"threats|{ip or 'all'}")}
+
+  if func == "check_ip":
+    ip = data.get("ip")
+    if ip:
+      return {"func": func, "msg": f"{ip} blacklisted: {library.client(f'blacklist_ip|{ip}')}"}
+    return {"func": func, "msg": "IP not provided"}
+    
+  if func == "conf":
+    return {"func": func, "msg": generate_conf_message()}
+    
+  if func == "createca":
+    return {"func": func, "msg": create_certificate_authority()}
+    
+  if func == "loadjson":
+    file_json = data.get("file_json")
+    if file_json:
+      file_path = os.path.join(config.PATH_JSON, file_json)
+      if os.path.exists(file_path):
+        return {"func": func, "msg": library.client(f"feed_add|{file_json}")}
+      return {"func": func, "msg": f"File {file_json} not found"}
+    return {"func": func, "msg": library.client("json_reload|")}
+    
+  if func == "status":
+    return {"func": func, "msg": "UP"}
+    
+  if func == "setloglevel":
+    logger_name = data.get("logger_name")
+    logger_level = data.get("logger_level")
+    if logger_name in config.LOGGERS["ASSOC"] and logger_level in config.LOGGERS["LEVELS"]:
+      config.LOGGERS["RESOURCES"][config.LOGGERS["ASSOC"][logger_name]].set_level(logger_level)
+      return {"func": func, "msg": f"Set level {logger_level} for {logger_name}"}
+    return {"func": func, "msg": "Invalid logger name or level"}
+    
+  return {"func": func, "msg": "Unknown function"}
+
+
+@app.route("/api", methods=["GET", "POST"])
 def api():
-  if request.method == 'POST':
-    if request.data:
-      rcv_data = json.loads(request.data.decode(encoding='utf-8'))
-      rsp = post_actions(rcv_data)
-      if rsp:
-        return rsp
-      else:
-        return '200'
-    else:
-      return '404'
-  if request.method == 'GET':
-    rcv_data = request.args.to_dict(flat=True)
-    if 'func' not in rcv_data:
-      rcv_data['func'] = 'home'
-    print(rcv_data)
-    rsp = post_actions(rcv_data)
-    if rsp:
-      return rsp
-    else:
-      return '200'
+  if request.method == "POST":
+    rcv_data = json.loads(request.data.decode("utf-8")) if request.data else {}
+    return handle_post_actions(rcv_data)
 
-@app.route("/", methods=['GET'])
+  if request.method == "GET":
+    rcv_data = request.args.to_dict(flat=True)
+    return handle_post_actions(rcv_data)
+
+
+@app.route("/", methods=["GET"])
 def index():
-  return render_template('index.html', host=config.MANAGEMENT_HOST, port=config.MANAGEMENT_PORT, json_path=config.PATH_JSON)
+  return render_template("index.html", host=config.MANAGEMENT_HOST, port=config.MANAGEMENT_PORT, json_path=config.PATH_JSON)
+
 
 def start_api(host, port):
   try:
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MANAGEMENT"].get_logger().info("Starting API..")
+    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MANAGEMENT"].get_logger().info("Starting API...")
     app.run(host, port)
   except Exception as e:
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().critical(e, exc_info=True)
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MANAGEMENT"].get_logger().critical(e, exc_info=True)
-    if check_tcp_conn(host, port) == False: 
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MANAGEMENT"].get_logger().critical("Tra " + str(config.SLEEP_THREAD_RESTART) + " riavvio il thread")
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("api() BOOM!!!")
-      time.sleep(config.SLEEP_THREAD_SOCKET_RESTART)
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MANAGEMENT"].get_logger().critical("Riavvio thread")
+    logger = config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MANAGEMENT"].get_logger()
+    logger.critical(f"API error: {e}", exc_info=True)
+    if not check_tcp_conn(host, port):
+      logger.critical(f"Restarting thread in {config.SLEEP_THREAD_RESTART} seconds...")
+      time.sleep(config.SLEEP_THREAD_RESTART)
       start_api(host, port)
-    else:
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MANAGEMENT"].get_logger().info("Server raggiungibile, riavvio del thread non necessario") 
