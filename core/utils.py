@@ -264,10 +264,15 @@ def get_connection_content_session_id(predator_packet_analysis, init_conn_ip, in
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("check_connection_content_session_id() BOOM!!!")
   return "ND"
 
-def check_if_ip_is_in_cidrs(ip1, ip2):
+def check_if_ip_is_in_cidrs(ip):
   for cidr in config.CIDRS:
-    if ipaddress.ip_address(ip1) in ipaddress.ip_network(cidr):
+    if ipaddress.ip_address(ip) in ipaddress.ip_network(cidr):
       return True
-    if ipaddress.ip_address(ip2) in ipaddress.ip_network(cidr):
-      return True
+  return False
+
+def is_ip_checkable(ip, port, proto):
+  if(Library().client("blacklist_ip|{}".format(ip)) != "no" and Library().client("whitelist|{}".format(ip))):       
+    if(ipaddress.ip_address(ip).is_private == False and check_if_ip_is_in_cidrs(ip) == False):
+      if net_whitelisted(ip, proto, str(port), "") == False:
+        return True
   return False

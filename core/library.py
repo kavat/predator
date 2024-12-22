@@ -6,269 +6,345 @@ import json
 import geoip2.database
 
 from threading import Lock
+from typing import Dict, List, Union
 from core.common_utils import (
   id_generator,
   parse_json,
   parse_json_array
 )
 
+
 class Library:
-
   def __init__(self):
-    self.blacklist_ip = {}
+    self.blacklist_ip: Dict[str, str] = {}
     self.blacklist_ip_lock = Lock()
-    self.blacklist_fqdn = {}
-    self.blacklist_fqdn_lock = Lock()
-    self.pattern_tcp_udp = []
-    self.pattern_tcp_udp_lock = Lock()
-    self.whitelist = {}
-    self.whitelist_lock = Lock()
-    self.dns = {}
-    self.dns_lock = Lock()
-    self.threats = {}
-    self.threats_lock = Lock()
-    try:
-      self.geoloc_db = geoip2.database.Reader(config.PATH_MMDB)
-    except:
-      self.geoloc_db = False
-    self.geoloc_db_lock = Lock()
 
-  def geoloc_ip(self, ip):
-    ritorno = {'country':'ND', 'city':'ND', 'latitude':'ND', 'longitude':'ND'}
+    self.blacklist_fqdn: Dict[str, str] = {}
+    self.blacklist_fqdn_lock = Lock()
+
+    self.pattern_tcp_udp: List[str] = []
+    self.pattern_tcp_udp_lock = Lock()
+
+    self.whitelist: Dict[str, Union[str, Dict]] = {}
+    self.whitelist_lock = Lock()
+
+    self.dns: Dict[str, Dict] = {}
+    self.dns_lock = Lock()
+
+    self.threats: Dict[str, List[Dict]] = {}
+    self.threats_lock = Lock()
+
+    self.geoloc_db = self._initialize_geolocation_db()
+
+  def _initialize_geolocation_db(self):
     try:
-      if self.geoloc_db != False:
-        response = self.geoloc_db.city(ip)
-        ritorno = {'country':response.country.name, 'city':response.city.name, 'latitude':response.location.latitude, 'longitude':response.location.longitude}
+      return geoip2.database.Reader(config.PATH_MMDB)
+    except Exception as e:
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().error(
+        f"Error initializing GeoIP database: {e}"
+      )
+    return None
+
+  def geoloc_ip(self, ip: str) -> Dict[str, Union[str, float]]:
+    default_response = {"country": "ND", "city": "ND", "latitude": "ND", "longitude": "ND"}
+    if not self.geoloc_db:
+      return default_response
+
+    try:
+      response = self.geoloc_db.city(ip)
+      return {
+        "country": response.country.name,
+        "city": response.city.name,
+        "latitude": response.location.latitude,
+        "longitude": response.location.longitude,
+      }
     except geoip2.errors.AddressNotFoundError:
-      ritorno = {'country':'ND', 'city':'ND', 'latitude':'ND', 'longitude':'ND'}
-    return ritorno
+      return default_response
 
   def init_rules(self):
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().info("Carico le regole..")
-    for file_json in list(os.listdir(config.PATH_JSON)):
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().info("Carico il file " + file_json)
-      chiave = file_json.split(".")[0]
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().info("Carico " + chiave + " da " + config.PATH_JSON + file_json)
-      if(file_json == "whitelist.json"):
-        self.upd_whitelist(parse_json(config.PATH_JSON + file_json))
-      elif(file_json == "dns.json"):
-        self.upd_dns(parse_json(config.PATH_JSON + file_json))
-      elif file_json == "hole_cert_fqdn.json":
-        self.upd_blacklist_fqdn(parse_json(config.PATH_JSON + file_json))
-      elif file_json == "patterns_tcp_udp.json":
-        self.upd_pattern_tcp_udp(parse_json_array(config.PATH_JSON + file_json))
-      elif(file_json.endswith("_ip.json")):
-        self.upd_blacklist_ip(parse_json(config.PATH_JSON + file_json))
-      elif(file_json.endswith("_fqdn.json")):
-        self.upd_blacklist_fqdn(parse_json(config.PATH_JSON + file_json))
-      elif(file_json == "tor_nodes.json"):
-        self.upd_blacklist_ip(parse_json(config.PATH_JSON + file_json))
-      else:
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().warn("Scarto il file " + config.PATH_JSON + file_json)
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().info("WHITELIST: " + str(len(self.whitelist)))
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().info("BLACKLIST_IP: " + str(len(self.blacklist_ip)))
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().info("BLACKLIST_FQDN: " + str(len(self.blacklist_fqdn)))
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().info("DNS: " + str(len(self.dns)))
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().info("Caricati json")
+    logger = config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger()
+    logger.info("Loading rules...")
+
+    for file_name in os.listdir(config.PATH_JSON):
+      file_path = os.path.join(config.PATH_JSON, file_name)
+      logger.info(f"Processing file: {file_path}")
+
+      try:
+        if file_name == "whitelist.json":
+          self.upd_whitelist(parse_json(file_path))
+        elif file_name == "dns.json":
+          self.upd_dns(parse_json(file_path))
+        elif file_name == "hole_cert_fqdn.json":
+          self.upd_blacklist_fqdn(parse_json(file_path))
+        elif file_name == "patterns_tcp_udp.json":
+          self.upd_pattern_tcp_udp(parse_json_array(file_path))
+        elif file_name.endswith("_ip.json"):
+          self.upd_blacklist_ip(parse_json(file_path))
+        elif file_name.endswith("_fqdn.json"):
+          self.upd_blacklist_fqdn(parse_json(file_path))
+        elif file_name == "tor_nodes.json":
+          self.upd_blacklist_ip(parse_json(file_path))
+        else:
+          logger.warning(f"Ignoring unknown file: {file_name}")
+      except Exception as e:
+        logger.error(f"Error processing file {file_name}: {e}")
+
+    logger.info(f"WHITELIST: {len(self.whitelist)}")
+    logger.info(f"BLACKLIST_IP: {len(self.blacklist_ip)}")
+    logger.info(f"BLACKLIST_FQDN: {len(self.blacklist_fqdn)}")
+    logger.info(f"DNS: {len(self.dns)}")
+    logger.info("Rules loaded successfully.")
 
   def server(self):
     self.init_rules()
+
     try:
       os.unlink(config.SOCKET_LIBRARY)
-    except OSError:
-      if os.path.exists(config.SOCKET_LIBRARY):
-        raise
+    except FileNotFoundError:
+      pass
+    except OSError as e:
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().critical(
+        f"Error unlinking socket: {e}"
+      )
+      raise
 
     server = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
     server.bind(config.SOCKET_LIBRARY)
 
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().info('Server is listening for incoming connections...')
+    logger = config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger()
+    logger.info("Server is listening for incoming connections...")
+
     while True:
       try:
         data, addr = server.recvfrom(4096)
-        if addr is not None:
-          ricevuto = data.decode('utf-8')
-          config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().debug("BUFFER RICEVUTO {}".format(ricevuto))
-          client = ricevuto.split("|")[0]
-          func = ricevuto.split("|")[1]
-          messaggio = ricevuto.split("|")[2]
-          config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().debug("Ricevuto da {}: {} - {}".format(client, func, messaggio))
-          inviato = "no_func"
-          if func == "json_reload":
-            inviato = "ack"
-            self.init_rules()
-          if func == "feed_add":
-            if os.path.exists(config.PATH_JSON + messaggio):
-              inviato = "ack"
-              if messaggio == "whitelist.json":
-                self.upd_whitelist(parse_json(config.PATH_JSON + messaggio))
-              elif messaggio == "dns.json":
-                self.upd_dns(parse_json(config.PATH_JSON + messaggio))
-              elif messaggio == "hole_cert_fqdn.json":
-                self.upd_blacklist_fqdn(parse_json(config.PATH_JSON + messaggio))
-              elif messaggio == "patterns_tcp_udp.json":
-                self.upd_pattern_tcp_udp(parse_json_array(config.PATH_JSON + messaggio))
-              elif messaggio.endswith("_ip.json"):
-                self.upd_blacklist_ip(parse_json(config.PATH_JSON + messaggio))
-              elif messaggio.endswith("_fqdn.json"):
-                self.upd_blacklist_fqdn(parse_json(config.PATH_JSON + messaggio))
-              else:
-                inviato = "file_unknown"
-            else:
-              inviato = "no_file"
-          if func == "whitelist":
-            if messaggio in self.whitelist:
-              inviato = self.whitelist[messaggio]
-            else:
-              inviato = "no"
-          if func == "whitelist_fqdn_servernames":
-            if messaggio in self.whitelist["fqdn"]["servernames"]:
-              inviato = self.whitelist["fqdn"]["servernames"]["messaggio"]
-            else:
-              inviato = "no"
-          if func == "whitelist_fqdn_all_static":
-            if messaggio in self.whitelist["fqdn"]["all"]["static"]:
-              inviato = self.whitelist["fqdn"]["all"]["static"][messaggio]
-            else:
-              inviato = "no"
-          if func == "whitelist_fqdn_dns_requests":
-            if messaggio in self.whitelist["dns_requests"]:
-              inviato = self.whitelist["dns_requests"][messaggio]
-            else:
-              inviato = "no"
-          if func == "whitelist_layer4":
-            if messaggio in self.whitelist["layer4"]:
-              inviato = self.whitelist["layer4"][messaggio]
-            else:
-              inviato = "no"
-          if func == "whitelist_fqdn":
-            if messaggio in self.whitelist["fqdn"]:
-              inviato = self.whitelist["fqdn"][messaggio]
-            else:
-              inviato = "no"
-          if func == "whitelist_fqdn_all_static":
-            if messaggio in self.whitelist["fqdn"]["all"]["static"]:
-              inviato = self.whitelist["fqdn"]["all"]["static"][messaggio]
-            else:
-              inviato = "no"
-          if func == "pattern_tcp_udp":
-            inviato = "|".join(self.pattern_tcp_udp)
-          if func == "get_whitelist_fqdn_all_wild":
-            inviato = "|".join(self.whitelist["fqdn"]["all"]["wild"])
-          if func == "get_whitelist_fqdn_servernames":
-            inviato = "|".join(self.whitelist["fqdn"]["servernames"])
-          if func == "blacklist_ip":
-            if messaggio in self.blacklist_ip:
-              inviato = self.blacklist_ip[messaggio]
-            else:
-              inviato = "no"
-          if func == "blacklist_fqdn":
-            if messaggio in self.blacklist_fqdn:
-              inviato = self.blacklist_fqdn[messaggio]
-            else:
-              inviato = "no"
-          if func == "dns":
-            if messaggio in self.dns:
-              inviato = json.dumps(self.dns[messaggio])
-            else:
-              inviato = "no"
-          if func == "dns_add":
-            qname = ricevuto.split("|")[3] 
-            percorso = ricevuto.split("|")[4] 
-            a_d = {messaggio:{qname:percorso}}
-            self.upd_dns(a_d)
-            inviato = "ack"
-          if func == "add_threat":
-            inviato = "ack"
-            src = messaggio.split(",")[0]
-            dst = messaggio.split(",")[1]
-            sport = messaggio.split(",")[2]
-            dport = messaggio.split(",")[3]
-            protocol = messaggio.split(",")[4]
-            flags = messaggio.split(",")[5]
-            event = messaggio.split(",")[6]
-            evento = {"timestamp":round(time.time()), "src":src, "dst":dst, "sport":sport, "dport":dport, "protocol":protocol, "flags":flags, "event":event, "geo_src":self.geoloc_ip(src), "geo_dst":self.geoloc_ip(dst)}
-            self.upd_threats(evento)
-          if func == "threats":
-            threats_list = []
-            if messaggio == "all":
-              inviato = "Threats no filtered<br>"
-              threats_list = self.threats
-            else:
-              inviato = "Threats filtered for {}<br>".format(messaggio)
-              if messaggio in self.threats:
-                threats_list[messaggio] = self.threats[messaggio]
-            if len(threats_list) == 0:
-              inviato = "{}no_data".format(inviato)
-            else:
-              inviato = "{}<br><table cellspacing=0 cellpadding=0 border=1><tr><td>TIMESTAMP</td><td>SRC</td><td>DST</td><td>PROTOCOL</td><td>FLAGS</td><td>EVENT</td></tr>".format(inviato)  
-              for ip in threats_list:
-                for threat in threats_list[ip]:
-                  inviato = "{}<tr><td>{}</td><td>{}:{}</td><td>{}:{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(inviato, threat["timestamp"], threat["src"], threat["sport"], threat["dst"], threat["dport"], threat["protocol"], threat["flags"], threat["event"])
-              inviato = "{}</table>".format(inviato)
-          server.sendto(str.encode(inviato), client)
+        if addr:
+          response = self._handle_request(data.decode("utf-8"))
+          server.sendto(response.encode("utf-8"), addr)
       except BlockingIOError:
-        pass
+        continue
+      except Exception as e:
+        logger.error(f"Error handling request: {e}")
 
-    os.unlink(socket_path)
+  def _handle_request(self, data: str) -> str:
+    logger = config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger()
+    logger.debug(f"Received data: {data}")
 
-  def client(self, messaggio, json_r=False):
-    client_socket = "{}/{}.sock".format(config.SOCKET_LIBRARY_BASE_CLIENT, id_generator(10))
+    try:
+      client, func, message = data.split("|", 2)
+      logger.debug(f"Client: {client}, Func: {func}, Message: {message}")
+
+      handler_name = f"_handle_{func}"
+      if hasattr(self, handler_name):
+        handler = getattr(self, handler_name)
+        return handler(message)
+      else:
+        return "no_handler for func {}".format(func)
+    except Exception as e:
+      logger.error(f"Error parsing request: {e}")
+      return "error"
+
+  def _handle_dns_add(self, message: str) -> str:
+    key = message.split("___")[0]
+    qname = message.split("___")[1]
+    way = message.split("___")[2]
+    a_d = {key:{qname:way}}
+    self.upd_dns(a_d)
+    return "ack"
+
+  def _handle_feed_add(self, message: str) -> str:
+    logger = config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger()
+    if os.path.exists(message):
+      if message.endswith("whitelist.json"):
+        self.upd_whitelist(parse_json(message))
+      elif message.endswith("dns.json"):
+        self.upd_dns(parse_json(message))
+      elif message.endswith("hole_cert_fqdn.json"):
+        self.upd_blacklist_fqdn(parse_json(message))
+      elif message.endswith("patterns_tcp_udp.json"):
+        self.upd_pattern_tcp_udp(parse_json_array(message))
+      elif message.endswith("_ip.json"):
+        self.upd_blacklist_ip(parse_json(message))
+      elif message.endswith("_fqdn.json"):
+        self.upd_blacklist_fqdn(parse_json(message))
+      elif message.endswith("tor_nodes.json"):
+        self.upd_blacklist_ip(parse_json(message))
+      else:
+        logger.warning(f"Ignoring unknown file: {message}")
+        return "file_unknown"
+    else:
+      return "no_file"
+    return "ack"
+
+  def _handle_whitelist(self, message: str) -> str:
+    if message in self.whitelist:
+      return self.whitelist[message]
+    else:
+      return "no"
+
+  def _handle_whitelist_fqdn_servernames(self, message: str) -> str:
+    if message in self.whitelist["fqdn"]["servernames"]:
+      return self.whitelist["fqdn"]["servernames"][message]
+    else:
+      return "no"
+
+  def _handle_whitelist_fqdn_all_static(self, message: str) -> str:
+    if message in self.whitelist["fqdn"]["all"]["static"]:
+      return self.whitelist["fqdn"]["all"]["static"][message]
+    else:
+      return "no"
+
+  def _handle_whitelist_fqdn_dns_requests(self, message: str) -> str:
+    if message in self.whitelist["dns_requests"]:
+      return self.whitelist["dns_requests"][message]
+    else:
+      return "no"
+
+  def _handle_whitelist_layer4(self, message: str) -> str:
+    if message in self.whitelist["layer4"]:
+      return self.whitelist["layer4"][message]
+    else:
+      return "no"
+
+  def _handle_whitelist_fqdn(self, message: str) -> str:
+    if message in self.whitelist["fqdn"]:
+      return self.whitelist["fqdn"][message]
+    else:
+      return "no"
+
+  def _handle_whitelist_fqdn_all_static(self, message: str) -> str:
+    if message in self.whitelist["fqdn"]["all"]["static"]:
+      return self.whitelist["fqdn"]["all"]["static"][message]
+    else:
+      return "no"
+
+  def _handle_pattern_tcp_udp(self, message: str) -> str:
+    return "|".join(self.pattern_tcp_udp)
+
+  def _handle_get_whitelist_fqdn_all_wild(self, message: str) -> str:
+    return "|".join(self.whitelist["fqdn"]["all"]["wild"])
+
+  def _handle_get_whitelist_fqdn_servernames(self, message: str) -> str:
+    return "|".join(self.whitelist["fqdn"]["servernames"])
+
+  def _handle_blacklist_ip(self, message: str) -> str:
+    if message in self.blacklist_ip:
+      return self.blacklist_ip[message]
+    else:
+      return "no"
+
+  def _handle_blacklist_fqdn(self, message: str) -> str:
+    if message in self.blacklist_fqdn:
+      return self.blacklist_fqdn[message]
+    else:
+      return "no"
+
+  def _handle_dns(self, message: str) -> str:
+    if message in self.dns:
+      return json.dumps(self.dns[message])
+    else:
+      return "no"
+
+  def _handle_add_threat(self, message: str) -> str:
+    src = message.split(",")[0]
+    dst = message.split(",")[1]
+    sport = message.split(",")[2]
+    dport = message.split(",")[3]
+    protocol = message.split(",")[4]
+    flags = message.split(",")[5]
+    host = message.split(",")[6]
+    sni = message.split(",")[7]
+    report = message.split(",")[8]
+    event = message.split(",")[9]
+    evento = {
+      "timestamp": round(time.time()), 
+      "src": src, 
+      "dst": dst, 
+      "sport": sport, 
+      "dport": dport,
+      "protocol": protocol,
+      "flags":flags,
+      "event": event, 
+      "geo_src": self.geoloc_ip(src), 
+      "geo_dst": self.geoloc_ip(dst), 
+      "host": host, 
+      "sni": sni, 
+      "report": report
+    }
+    self.upd_threats(evento)
+    return "ack"
+
+  def _handle_threats(self, message: str) -> str:
+    buffer = ""
+    threats_list = []
+    if message == "all":
+      buffer = "Threats no filtered<br>"
+      threats_list = self.threats
+    else:
+      buffer = "Threats filtered for {}<br>".format(message)
+      if message in self.threats:
+        threats_list[message] = self.threats[message]
+    if len(threats_list) == 0:
+      buffer = "{}no_data".format(buffer)
+    else:
+      buffer = "{}<br><table cellspacing=0 cellpadding=0 border=1><tr><td>TIMESTAMP</td><td>SRC</td><td>DST</td><td>PROTOCOL</td><td>FLAGS</td><td>EVENT</td><td>REPORT</td><td>HOST</td><td>SNI</td></tr>".format(buffer)
+      for ip in threats_list:
+        for threat in threats_list[ip]:
+          buffer = "{}<tr><td>{}</td><td>{}:{}</td><td>{}:{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(buffer, threat["timestamp"], threat["src"], threat["sport"], threat["dst"], threat["dport"], threat["protocol"], threat["flags"], threat["event"], threat["report"], threat["host"], threat["sni"])
+      buffer = "{}</table>".format(buffer)
+    return buffer
+
+  def _handle_json_reload(self, message: str) -> str:
+    self.init_rules()
+    return "ack"
+
+  def client(self, message: str, json_r: bool = False) -> Union[str, dict]:
+    client_socket = f"{config.SOCKET_LIBRARY_BASE_CLIENT}/{id_generator(10)}.sock"
     client = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
     client.bind(client_socket)
-    client.sendto(str.encode("{}|{}".format(client_socket, messaggio)), config.SOCKET_LIBRARY)
 
-    response = client.recv(4096)
-    ritorno = response.decode()
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().debug(f'Received response: {ritorno}')
+    try:
+      client.sendto(f"{client_socket}|{message}".encode("utf-8"), config.SOCKET_LIBRARY)
+      response = client.recv(4096).decode("utf-8")
+      return json.loads(response) if json_r else response
+    finally:
+      client.close()
+      os.unlink(client_socket)
 
-    client.close()
-    os.unlink(client_socket)
-
-    if json_r == True:
-      return json.loads(ritorno)
-    else:
-      return ritorno
-
-  def upd_blacklist_ip(self, cnt):
+  def upd_blacklist_ip(self, cnt: Dict[str, str]):
     with self.blacklist_ip_lock:
       self.blacklist_ip.update(cnt)
 
-  def upd_blacklist_fqdn(self, cnt):
+  def upd_blacklist_fqdn(self, cnt: Dict[str, str]):
     with self.blacklist_fqdn_lock:
       self.blacklist_fqdn.update(cnt)
 
-  def upd_whitelist(self, cnt):
+  def upd_whitelist(self, cnt: Dict[str, Union[str, Dict]]):
     with self.whitelist_lock:
       self.whitelist.update(cnt)
 
-  def upd_dns(self, cnt):
+  def upd_dns(self, cnt: Dict[str, Dict]):
     with self.dns_lock:
       self.dns.update(cnt)
 
-  def upd_pattern_tcp_udp(self, cnt):
+  def upd_pattern_tcp_udp(self, cnt: List[str]):
     with self.pattern_tcp_udp_lock:
       self.pattern_tcp_udp = cnt
 
-  def upd_threats(self, cnt):
+  def upd_threats(self, cnt: Dict):
     with self.threats_lock:
-      if cnt['src'] not in self.threats:
-        self.threats[cnt['src']] = []
-      self.threats[cnt['src']].append(cnt)
-      if cnt['dst'] not in self.threats:
-        self.threats[cnt['dst']] = []
-      self.threats[cnt['dst']].append(cnt)
+      for key in ("src", "dst"):
+        if cnt[key] not in self.threats:
+          self.threats[cnt[key]] = []
+        self.threats[cnt[key]].append(cnt)
+
 
 def start_library_server():
+  logger = config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger()
   try:
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().info("STARTING LIBRARY")
-    server_library = Library()
-    server_library.server()
+    logger.info("Starting Library Server...")
+    Library().server()
   except Exception as e:
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().critical(e, exc_info=True)
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().critical(e, exc_info=True)
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().critical("Tra " + str(config.SLEEP_THREAD_RESTART) + " riavvio il thread")
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("start_library_server() BOOM!!!")
+    logger.critical(f"Server crashed: {e}", exc_info=True)
+    logger.info(f"Restarting server in {config.SLEEP_THREAD_RESTART} seconds...")
     time.sleep(config.SLEEP_THREAD_RESTART)
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_LIBRARY"].get_logger().critical("Riavvio thread")
     start_library_server()

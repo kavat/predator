@@ -9,10 +9,10 @@ LOG_PATH="${APP_DIR}/var/log"
 PID_FILE="${APP_DIR}/var/run/predator.pid"
 PATH_ANUBI_SIGNATURES="${APP_DIR}/../anubi-signatures"
 PATH_VENV="${APP_DIR}/predator_env/"
-MANAGEMENT_HOST=$(cat ${CONF_PATH} | grep MANAGEMENT_HOST | awk -F' = ' '{print $2}')
-MANAGEMENT_PORT=$(cat ${CONF_PATH} | grep MANAGEMENT_PORT | awk -F' = ' '{print $2}')
-PROXY_PORT=$(cat ${CONF_PATH} | grep PROXY_PORT | awk -F' = ' '{print $2}')
-DUMMY_PORT=$(cat ${CONF_PATH} | grep DUMMY_PORT | awk -F' = ' '{print $2}')
+MANAGEMENT_HOST=$(cat ${CONF_PATH} | grep MANAGEMENT_HOST | awk -F' = ' '{print $2}' | sed "s/\"//g")
+MANAGEMENT_PORT=$(cat ${CONF_PATH} | grep MANAGEMENT_PORT | awk -F' = ' '{print $2}' | sed "s/\"//g")
+PROXY_PORT=$(cat ${CONF_PATH} | grep PROXY_PORT | awk -F' = ' '{print $2}' | sed "s/\"//g")
+DUMMY_PORT=$(cat ${CONF_PATH} | grep DUMMY_PORT | awk -F' = ' '{print $2}' | sed "s/\"//g")
 
 update_full() {
         
@@ -28,11 +28,11 @@ update_full() {
     anno=$(echo $file_ip_list | awk -F'.' '{print $1}' | awk -F'-' '{print $1}')
     mese=$(echo $file_ip_list | awk -F'.' '{print $1}' | awk -F'-' '{print $2}')
     cat "${PATH_ANUBI_SIGNATURES}/ips/${file_ip_list}" | grep "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | awk -F':' '{print "\\\""$1"\\\":\\\"misp\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > "${JSON_PATH}/anubi_${anno}_${mese}_ip.json"
-    curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT} -d "{\"func\":\"loadjson\",\"file_json\":\"anubi_${anno}_${mese}_ip.json\"}"
+    curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT}/api -d "{\"func\":\"loadjson\",\"file_json\":\"anubi_${anno}_${mese}_ip.json\"}"
   done
         
   cat "${PATH_ANUBI_SIGNATURES}/ips/tor.list" | grep "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | awk '{print "\\\""$1"\\\":\\\"tor\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > ${JSON_PATH}/tor_nodes.json
-  curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT} -d "{\"func\":\"loadjson\",\"file_json\":\"tor_nodes.json\"}"
+  curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT}/api -d "{\"func\":\"loadjson\",\"file_json\":\"tor_nodes.json\"}"
                 
   ls -lth ${JSON_PATH}/
         
@@ -52,7 +52,7 @@ update() {
   fi
 
   cat "${PATH_ANUBI_SIGNATURES}/ips/${anno}-${mese}.list" | grep "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | awk -F':' '{print "\\\""$1"\\\":\\\""$2"\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > "${JSON_PATH}/anubi_${anno}_${mese}_ip.json"
-  curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT} -d "{\"func\":\"loadjson\",\"file_json\":\"anubi_${anno}_${mese}_ip.json\"}"
+  curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT}/api -d "{\"func\":\"loadjson\",\"file_json\":\"anubi_${anno}_${mese}_ip.json\"}"
 
   ls -lth ${JSON_PATH}/anubi_${anno}_${mese}_ip.json
 
@@ -142,6 +142,7 @@ start() {
       exit 1
     fi
     echo ""
+    update_full
     nohup $PATH_VENV/bin/python3 -u $APP_PATH >> ${LOG_PATH}/predator_std.log 2>&1 &
     echo $! > $PID_FILE
     echo "Service started."
