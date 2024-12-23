@@ -23,7 +23,8 @@ update_full() {
     cd "${APP_DIR}/.."
     git clone git@github.com:kavat/anubi-signatures.git
   fi
-    
+ 
+  echo "Updating IP"   
   for file_ip_list in $(ls "${PATH_ANUBI_SIGNATURES}/ips" | grep "[0-9][0-9][0-9][0-9]\-[0-9][0-9]\.list"); do
     anno=$(echo $file_ip_list | awk -F'.' '{print $1}' | awk -F'-' '{print $1}')
     mese=$(echo $file_ip_list | awk -F'.' '{print $1}' | awk -F'-' '{print $2}')
@@ -33,6 +34,14 @@ update_full() {
         
   cat "${PATH_ANUBI_SIGNATURES}/ips/tor.list" | grep "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | awk '{print "\\\""$1"\\\":\\\"tor\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > ${JSON_PATH}/tor_nodes.json
   curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT}/api -d "{\"func\":\"loadjson\",\"file_json\":\"tor_nodes.json\"}"
+
+  echo "Updating FQDN"
+  for file_fqdn_list in $(ls "${PATH_ANUBI_SIGNATURES}/fqdn" | grep "[0-9][0-9][0-9][0-9]\-[0-9][0-9]\.list"); do
+    anno=$(echo $file_fqdn_list | awk -F'.' '{print $1}' | awk -F'-' '{print $1}')
+    mese=$(echo $file_fqdn_list | awk -F'.' '{print $1}' | awk -F'-' '{print $2}')
+    cat "${PATH_ANUBI_SIGNATURES}/fqdn/${file_fqdn_list}" | grep -v "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | awk -F':' '{print "\\\""$1"\\\":\\\"misp\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > "${JSON_PATH}/anubi_${anno}_${mese}_fqdn.json"
+    curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT}/api -d "{\"func\":\"loadjson\",\"file_json\":\"anubi_${anno}_${mese}_fqdn.json\"}"
+  done
                 
   ls -lth ${JSON_PATH}/
         
@@ -53,8 +62,10 @@ update() {
 
   cat "${PATH_ANUBI_SIGNATURES}/ips/${anno}-${mese}.list" | grep "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | awk -F':' '{print "\\\""$1"\\\":\\\""$2"\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > "${JSON_PATH}/anubi_${anno}_${mese}_ip.json"
   curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT}/api -d "{\"func\":\"loadjson\",\"file_json\":\"anubi_${anno}_${mese}_ip.json\"}"
+  cat "${PATH_ANUBI_SIGNATURES}/fqdn/${anno}-${mese}.list" | grep "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | awk -F':' '{print "\\\""$1"\\\":\\\""$2"\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > "${JSON_PATH}/anubi_${anno}_${mese}_fqdn.json"
+  curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT}/api -d "{\"func\":\"loadjson\",\"file_json\":\"anubi_${anno}_${mese}_fqdn.json\"}"
 
-  ls -lth ${JSON_PATH}/anubi_${anno}_${mese}_ip.json
+  ls -lth ${JSON_PATH}/anubi_${anno}_${mese}_*.json
 
 }
 
@@ -143,27 +154,27 @@ start() {
     fi
     echo ""
     update_full
-    nohup $PATH_VENV/bin/python3 -u $APP_PATH >> ${LOG_PATH}/predator_std.log 2>&1 &
-    echo $! > $PID_FILE
-    echo "Service started."
+    if [ "${1}" == "daemon" ]; then
+      nohup $PATH_VENV/bin/python3 -u $APP_PATH >> ${LOG_PATH}/predator_std.log 2>&1 &
+      echo $! > $PID_FILE
+      echo "Service started."
+    else
+      $PATH_VENV/bin/python3 -u $APP_PATH
+    fi
 }
 
 stop() {
   if [ -f $PID_FILE ]; then
-    kill $(cat $PID_FILE)
+    kill $(cat $PID_FILE) > /dev/null 2>&1
     rm $PID_FILE
-    ps xa | grep python3 | grep predator.py | grep -v grep | grep -o "^[ 0-9]\+" | xargs kill -9
-    echo "Service stopped."
-  else
-    ps xa | grep python3 | grep predator.py | grep -v grep | grep -o "^[ 0-9]\+" | xargs kill -9
-    echo "The service is not running."
   fi
+  ps xa | grep python3 | grep predator.py | grep -v grep | grep -o "^[ 0-9]\+" | xargs kill -9 > /dev/null 2>&1
 }
 
 restart() {
   stop
   sleep 3
-  start
+  start "daemon"
 }
 
 case "$1" in
@@ -194,7 +205,7 @@ case "$1" in
     clean_log
   ;;
   start)
-    start
+    start "daemon"
   ;;
   stop)
     stop
@@ -205,6 +216,9 @@ case "$1" in
   status)
     status
   ;;
+  run)
+    start "nodaemon"
+  ;;
   *)
-  echo "Usage: $0 {start|stop|restart|rules|check_json|clean|status|tail}"
+  echo "Usage: $0 {start|stop|restart|run|rules|check_json|clean|status|tail}"
 esac

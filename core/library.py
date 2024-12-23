@@ -194,8 +194,8 @@ class Library:
       return "no"
 
   def _handle_whitelist_fqdn_dns_requests(self, message: str) -> str:
-    if message in self.whitelist["dns_requests"]:
-      return self.whitelist["dns_requests"][message]
+    if message in self.whitelist["fqdn"]["dns_requests"]:
+      return self.whitelist["fqdn"]["dns_requests"][message]
     else:
       return "no"
 

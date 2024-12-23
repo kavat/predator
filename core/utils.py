@@ -101,14 +101,16 @@ def get_type_ip_fqdn_warn(ip, fqdn):
       return fqdn_check
   return ""
 
-def static_fqdn_checks(fqdn):
-  if fqdn != "":
-    if fqdn[-1] == '.':
-      qname = fqdn[:-1]
-    else:
-      qname = fqdn
-  if qname.endswith(".onion"):
-    return True
+def static_fqdn_checks(fqdns):
+  for fqdn in fqdns:
+    if fqdn != "":
+      if fqdn[-1] == '.':
+        qname = fqdn[:-1]
+      else:
+        qname = fqdn
+    for malicious_suffix in config.MALICIOUS_SUFFIXES:
+      if qname.endswith(malicious_suffix):
+        return True
   return False
 
 def inspect_packet_content(packet_content):
@@ -275,4 +277,11 @@ def is_ip_checkable(ip, port, proto):
     if(ipaddress.ip_address(ip).is_private == False and check_if_ip_is_in_cidrs(ip) == False):
       if net_whitelisted(ip, proto, str(port), "") == False:
         return True
+  return False
+
+def is_malicious_host(host):
+  if host == "":
+    return False
+  if Library().client("blacklist_fqdn|{}".format(host)) != "no" or static_fqdn_checks([host]):
+    return True
   return False

@@ -16,6 +16,7 @@ from core.utils import (
   get_connection_content_size,
   get_connection_content_session_id,
   is_ip_checkable,
+  is_malicious_host,
   parse_json,
   parse_json_array
 )
@@ -43,15 +44,9 @@ class PredatorPacketAnalysis:
 
   def add_threat_l7(self, ip1, port1, ip2, port2, proto, flags, type_threat, type_flow, content_whitelisted, content_size, content_session_id, reporting, sni, host, payload):
     if type_flow == "dst":
-      src_ip = ip2
-      src_port = port2
-      dst_ip = ip1
-      dst_port = port1
+      (src_ip, src_port, dst_ip, dst_port) = ip2, port2, ip1, port1
     else:
-      src_ip = ip1
-      src_port = port1
-      dst_ip = ip2
-      dst_port = port2
+      (src_ip, src_port, dst_ip, dst_port) = ip1, port1, ip2, port2
     Library().client("add_threat|{},{},{},{},{},{},{},{},static_patterns,{}".format(src_ip, dst_ip, src_port, dst_port, proto, flags, host, sni, type_threat))
     stringa_log = "LOG=PREDATOR_THREAT SRC={} SPORT={} DST={} DPORT={} PROTO={} FLAGS={} WHITELISTED_CONTENT={} CONTENT_SIZE={} CONTENT_SESSION_ID={} EVENT={}_{} REPORTING={} SNI={} HOST={} PAYLOAD={}".format(src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host, payload)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
@@ -60,17 +55,17 @@ class PredatorPacketAnalysis:
 
   def add_threat_l4(self, ip1, port1, ip2, port2, proto, flags, type_threat, type_flow, content_whitelisted, content_size, content_session_id, reporting, sni, host):
     if type_flow == "dst":
-      src_ip = ip2
-      src_port = port2
-      dst_ip = ip1
-      dst_port = port1
+      (src_ip, src_port, dst_ip, dst_port) = ip2, port2, ip1, port1
     else:
-      src_ip = ip1
-      src_port = port1
-      dst_ip = ip2 
-      dst_port = port2
+      (src_ip, src_port, dst_ip, dst_port) = ip1, port1, ip2, port2
     Library().client("add_threat|{},{},{},{},{},{},{},{},{},{}".format(src_ip, dst_ip, src_port, dst_port, proto, flags, host, sni, reporting, type_threat))
     stringa_log = "LOG=PREDATOR_THREAT SRC={} SPORT={} DST={} DPORT={} PROTO={} FLAGS={} WHITELISTED_CONTENT={} CONTENT_SIZE={} CONTENT_SESSION_ID={} EVENT={}_{} REPORTING={} SNI={} HOST={}".format(src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host)
+    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
+    if config.SEND_TO_SYSLOG == True:
+      syslog.syslog(stringa_log)
+
+  def add_threat_dns(self, pkt, sport, dport, proto, event, rdata, qname):
+    stringa_log = "LOG=PREDATOR_THREAT SRC={} SPORT={} DST={} DPORT={} PROTO={} FLAGS=ND WHITELISTED_CONTENT=N REPORTING={} EVENT={} RDATA={} FQDN={}".format(pkt[IP].src, sport, pkt[IP].dst, dport, proto, get_type_ip_fqdn_warn("", qname), event, rdata, qname)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
     if config.SEND_TO_SYSLOG == True:
       syslog.syslog(stringa_log)
@@ -147,55 +142,22 @@ class PredatorPacketAnalysis:
           self.add_threat_l7(ip_check, port_check, ip2, port2, proto, flags, "L7", check_content_packet)
         #self.print_matrix(flags)
 
-  def analyze(self, packet):
-    if IP in packet:
-      if packet.haslayer('UDP') and packet.haslayer('DNS'):
-        get_dns_response(packet)
-      else:
-        dport = ""
-        sport = ""
-        proto = ""
-        flags = "ND"
-        sni = ""
-        host = ""
-        if ICMP in packet:
-          proto = "ICMP"
-        if TCP in packet:
-          proto = "TCP"
-          dport = packet[TCP].dport
-          sport = packet[TCP].sport
-          flags = packet.sprintf('%TCP.flags%')
-        if UDP in packet:
-          proto = "UDP"
-          dport = packet[UDP].dport
-          sport = packet[UDP].sport
-        if proto != "":
-          if packet.haslayer(TLS):
-            conf.tls_session_enable = True
-            sni = get_sni(packet)
+  def get_host_from_packet_raw(self, packet):
+    try:
+      if Raw in packet:
+        packet_content = packet[Raw].load.decode('latin-1')
+        for riga in packet_content.split("\n"):
+          if riga.strip() != "":
+            if riga.strip().startswith('Host') == True:
+              return (riga.strip().replace("Host: ", ""), len(packet_content))
+    except:
+      pass
+    return ("", 0)
 
-        for ip in [{'ip':packet[IP].dst,'port':dport,'proto':proto,'type':'dst','ip2':packet[IP].src,'port2':sport},{'ip':packet[IP].src,'port':sport,'proto':proto,'type':'src','ip2':packet[IP].dst,'port2':dport}]:
-          ip_check = ip['ip']
-          port_check = ip['port']
-          proto_check = ip['proto']
-          ip_type_flow = ip['type']
-          ip2 = ip['ip2']
-          port2 = ip['port2']
-          if(is_ip_checkable(ip_check, port_check, proto_check)):
-            type_ip_fqdn_warn = get_type_ip_fqdn_warn(ip_check, "")
-            self.init_matrix_connection(ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
-            self.tcp_flag_p(packet, flags, ip_check, port_check, ip2, port2, proto, ip_type_flow)
-            self.tcp_flag_fr(packet, flags, ip_check, port_check, ip2, port2, proto, ip_type_flow)
-            content_whitelisted = check_connection_content(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
-            content_size = get_connection_content_size(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
-            content_session_id = get_connection_content_session_id(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
-            host = get_host_from_header(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
-            self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4", ip_type_flow, content_whitelisted, content_size, content_session_id, type_ip_fqdn_warn, sni, host)
+  def dns_response(self, pkt, sport, dport, proto):
+    if 'DNS Question Record' not in pkt:
+      return
 
-def get_dns_response(pkt):
-
-  #config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_DNS"].get_logger().debug(str(pkt.show()))
-  if 'DNS Question Record' in pkt:
     dns = pkt['DNS']
 
     try:
@@ -203,54 +165,82 @@ def get_dns_response(pkt):
     except (UnicodeDecodeError, AttributeError):
       qname = dns.qd.qname
 
-    rdata_loop = []
+    rdata_loop = [qname]
+    percorso = []
     action_dns = "DNS_QUESTION"
+
     if 'DNS Resource Record' in pkt:
       action_dns = "DNS_RESOURCE_RECORD"
-      percorso = []
       for i in range(dns.ancount):
-        rrname = ""
         dnsrr = dns.an[i]
+
         try:
           rrname = dnsrr.rrname.decode("utf-8")
         except (UnicodeDecodeError, AttributeError):
           rrname = dnsrr.rrname
+
         if rrname not in percorso:
           percorso.append(rrname)
+
         try:
           rdata = dnsrr.rdata.decode("utf-8")
         except (UnicodeDecodeError, AttributeError):
-          try:
-            rdata = dnsrr.rdata
-          except:
-            rdata = ""
-        if rdata != "":
+          rdata = dnsrr.rdata or ""
+
+        if rdata:
           rdata_loop.append(rdata)
 
-    for rdata in rdata_loop:
-      if not isinstance(rdata, list) and rdata != '.' and rdata != '':
-        Library().client("dns_add|{}___{}___{}".format(rdata, qname, ' -> '.join(percorso)))
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_DNS"].get_logger().debug(str(Library().client("dns|{}".format(rdata), json_r=True)))
+    library = Library()
+    for rdata in filter(lambda x: x not in {'.', ''} and not isinstance(x, list), rdata_loop):
+      client_response = library.client(f"dns_add|{rdata}___{qname}___{' -> '.join(percorso)}")
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_DNS"].get_logger().debug(
+        library.client(f"dns|{rdata}", json_r=True)
+      )
 
-      qname_check_1 = Library().client("blacklist_fqdn|{}".format(qname))
-      qname_check_2 = Library().client("blacklist_fqdn|{}".format(qname[:-1]))
-      if qname != "" and (qname_check_1 != "no" or qname_check_2 != "no" or static_fqdn_checks(qname)) and check_domain_whitelisted(qname, rdata, "dns_request") == False:
-        proto = "UDP"
-        dport = pkt[UDP].dport
-        sport = pkt[UDP].sport
+      qname_variants = {qname, qname[:-1]}
+      if any(library.client(f"blacklist_fqdn|{variant}") != "no" for variant in qname_variants) or static_fqdn_checks(qname_variants):
+        if not check_domain_whitelisted(qname, rdata, "dns_request"):
+          self.add_threat_dns(pkt, sport, dport, proto, "dns_request", rdata, qname)
 
-        if(qname[-1] == '.'):
-          fqdn = qname[:-1]
-        else:
-          fqdn = qname
+  def analyze(self, packet):
+    if IP in packet:
+      if packet.haslayer('UDP') and packet.haslayer('DNS'):
+        self.dns_response(packet, packet[UDP].sport, packet[UDP].dport, "UDP")
+      else:
+        (dport, sport, proto, flags, sni, host) = 0, 0, "", "ND", "", ""
+        if ICMP in packet:
+          proto = "ICMP"
+        if TCP in packet:
+          (proto, dport, sport, flags) = "TCP", packet[TCP].dport, packet[TCP].sport, packet.sprintf('%TCP.flags%')
+        if UDP in packet:
+          (proto, dport, sport) = "UDP", packet[UDP].dport, packet[UDP].sport
+        if proto != "":
+          if packet.haslayer(TLS):
+            conf.tls_session_enable = True
+            sni = get_sni(packet)
 
-        #config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_DNS"].get_logger().debug(str(pkt.show()))
-
-        type_ip_fqdn_warn = get_type_ip_fqdn_warn("", qname)
-        stringa_log = "LOG=PREDATOR_THREAT SRC=" + str(pkt[IP].src) + " SPORT=" + str(sport) + " DST=" + str(pkt[IP].dst) + " DPORT=" + str(dport) + " PROTO=" + str(proto) + " FLAGS=ND WHITELISTED_CONTENT=N REPORTING=" + type_ip_fqdn_warn + " EVENT=" + str(action_dns) + " RDATA=" + str(rdata) + " FQDN=" + str(qname)
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
-        if config.SEND_TO_SYSLOG == True:
-          syslog.syslog(stringa_log)
+        connection_to_analyze = [
+          {'ip': packet[IP].dst, 'port': dport, 'proto': proto, 'type': 'dst', 'ip2': packet[IP].src, 'port2': sport},
+          {'ip': packet[IP].src, 'port': sport, 'proto': proto, 'type': 'src', 'ip2': packet[IP].dst, 'port2':dport}
+        ]
+        for ip in connection_to_analyze:
+          (ip_check, port_check, proto_check, ip_type_flow, ip2, port2)  = ip['ip'], ip['port'], ip['proto'], ip['type'], ip['ip2'], ip['port2']
+          if(is_ip_checkable(ip_check, port_check, proto_check)):
+            self.init_matrix_connection(ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
+            self.tcp_flag_p(packet, flags, ip_check, port_check, ip2, port2, proto, ip_type_flow)
+            self.tcp_flag_fr(packet, flags, ip_check, port_check, ip2, port2, proto, ip_type_flow)
+            host = get_host_from_header(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
+            content_whitelisted = check_connection_content(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
+            content_size = get_connection_content_size(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
+            content_session_id = get_connection_content_session_id(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
+            self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_ip", ip_type_flow, content_whitelisted, content_size, content_session_id, get_type_ip_fqdn_warn(ip_check, ""), sni, host)
+        host, content_size = self.get_host_from_packet_raw(packet)
+        if is_malicious_host(host):
+          reporting = get_type_ip_fqdn_warn("", host)
+          if reporting == "":
+            reporting = "static_patterns"
+          self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_domain", ip_type_flow, "NO", content_size, "ND", reporting, sni, host) 
+          
 
 def get_sni(packet):
   try:
