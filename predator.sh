@@ -28,7 +28,7 @@ update_full() {
   for file_ip_list in $(ls "${PATH_ANUBI_SIGNATURES}/ips" | grep "[0-9][0-9][0-9][0-9]\-[0-9][0-9]\.list"); do
     anno=$(echo $file_ip_list | awk -F'.' '{print $1}' | awk -F'-' '{print $1}')
     mese=$(echo $file_ip_list | awk -F'.' '{print $1}' | awk -F'-' '{print $2}')
-    cat "${PATH_ANUBI_SIGNATURES}/ips/${file_ip_list}" | grep "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | awk -F':' '{print "\\\""$1"\\\":\\\"misp\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > "${JSON_PATH}/anubi_${anno}_${mese}_ip.json"
+    cat "${PATH_ANUBI_SIGNATURES}/ips/${file_ip_list}" | grep "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | sed "s/'//g" | awk -F':' '{print "\\\""$1"\\\":\\\""$2"\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > "${JSON_PATH}/anubi_${anno}_${mese}_ip.json"
     curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT}/api -d "{\"func\":\"loadjson\",\"file_json\":\"anubi_${anno}_${mese}_ip.json\"}"
   done
         
@@ -39,7 +39,7 @@ update_full() {
   for file_fqdn_list in $(ls "${PATH_ANUBI_SIGNATURES}/fqdn" | grep "[0-9][0-9][0-9][0-9]\-[0-9][0-9]\.list"); do
     anno=$(echo $file_fqdn_list | awk -F'.' '{print $1}' | awk -F'-' '{print $1}')
     mese=$(echo $file_fqdn_list | awk -F'.' '{print $1}' | awk -F'-' '{print $2}')
-    cat "${PATH_ANUBI_SIGNATURES}/fqdn/${file_fqdn_list}" | grep -v "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | awk -F':' '{print "\\\""$1"\\\":\\\"misp\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > "${JSON_PATH}/anubi_${anno}_${mese}_fqdn.json"
+    cat "${PATH_ANUBI_SIGNATURES}/fqdn/${file_fqdn_list}" | grep -v "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | sed "s/'//g" | awk -F':' '{print "\\\""$1"\\\":\\\""$2"\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > "${JSON_PATH}/anubi_${anno}_${mese}_fqdn.json"
     curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT}/api -d "{\"func\":\"loadjson\",\"file_json\":\"anubi_${anno}_${mese}_fqdn.json\"}"
   done
                 

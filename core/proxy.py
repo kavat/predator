@@ -388,14 +388,20 @@ class HttpProxy(BaseHTTPRequestHandler):
     if encoding == "identity":
       text = data
     elif encoding in ("gzip", "x-gzip"):
-      text = gzip.decompress(data)
+      if isinstance(data, (bytes, bytearray)):
+        text = gzip.decompress(data)
+      else:
+        text = gzip.decompress(str.encode(data))
     elif encoding == "deflate":
       try:
         text = zlib.decompress(data)
       except zlib.error:
         text = zlib.decompress(data, -zlib.MAX_WBITS)
     elif encoding == "br":
-      text = brotli.decompress(data)
+      if isinstance(data, (bytes, bytearray)):
+        text = brotli.decompress(data)
+      else:
+        text = brotli.decompress(str.encode(data))
     else:
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().warn(id_thread + " - " + hostname + " Unknown Content-Encoding: " + encoding)
     if isinstance(text, (bytes, bytearray)):
@@ -775,7 +781,10 @@ def analyze_request(req, req_body, res, res_body, proxy_request, hostname):
       except ValueError:
         res_body_text = res_body
     elif content_type.startswith("text/html"):
-      m = re.search(rb"<title[^>]*>\s*([^<]+?)\s*</title>", res_body, re.I)
+      if isinstance(res_body, (bytes, bytearray)):
+        m = re.search(rb"<title[^>]*>\s*([^<]+?)\s*</title>", res_body, re.I)
+      else:
+        m = re.search("<title[^>]*>\s*([^<]+?)\s*</title>", res_body, re.I)
       if m:
         log_record_res(m.group(1).decode(), res, "html_title", proxy_request, req.address_string(), hostname, "debug")
     elif content_type.startswith("text/plain"):
