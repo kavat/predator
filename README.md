@@ -112,11 +112,11 @@ Important settings include:
 ## Dependencies
 1. Clone the project (e.g., `/opt/predator`):
    ```bash
-   apt install python3 python3-pip python3-venv git libpcap-dev curl
+   apt-get update && cat requirements_system.txt | xargs apt-get install -y
    cd /opt/predator
    python3 -m venv predator_env
    source predator_env/bin/activate
-   pip3 install scapy flask brotli websocket cryptography geoip2
+   pip3 install -r requirements_python.txt
    mkdir -p /opt/predator/var/{log,run}
    ```
 
