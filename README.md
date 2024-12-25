@@ -112,7 +112,7 @@ Important settings include:
 ## Dependencies
 1. Clone the project (e.g., `/opt/predator`):
    ```bash
-   apt install python3 python3-pip python3-venv
+   apt install python3 python3-pip python3-venv git libpcap-dev curl
    cd /opt/predator
    python3 -m venv predator_env
    source predator_env/bin/activate
