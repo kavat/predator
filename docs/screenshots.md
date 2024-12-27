@@ -1,5 +1,5 @@
 # Predator screenshots
 - **Status**:
-  ![Status](screenshots/status.png)
+  ![Status](../screenshots/status.png)
 - **Threats Identified**:
-  ![Threats](screenshots/threats.png)
+  ![Threats](../screenshots/threats.png)

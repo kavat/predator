@@ -39,7 +39,7 @@ Controlled via `API` setting in `config.py` (default: `True`):
   ```
 A simple interface is provided as management console and it is available at `http://MANAGEMENT_HOST:MANAGEMENT_PORT`.
 
-![Predator WebUI](screenshots/api.png)
+![Predator WebUI](../screenshots/api.png)
 
 ## Proxy
 Performs SSL termination and traffic inspection based on rules.
