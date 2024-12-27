@@ -156,7 +156,7 @@ start() {
     update_full
     if [ "${1}" == "daemon" ]; then
       if [ -f "/.dockerenv" ]; then
-	nohup python3 -u $APP_PATH &
+	nohup python3 -u $APP_PATH >> /proc/1/fd/1 2>&1 &
 	echo $! > $PID_FILE
 	echo "Service started."
       else
