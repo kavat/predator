@@ -1,7 +1,0 @@
-instances:
-  - name: predator_es
-    dns:
-      - predator_es
-      - localhost
-    ip:
-      - 127.0.0.1
