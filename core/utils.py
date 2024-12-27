@@ -23,6 +23,10 @@ def get_curdatetime():
   now = datetime.now()
   return now.strftime("%Y-%m-%d %H:%M:%S")
 
+def get_es_index_date():
+  now = datetime.now()
+  return now.strftime("%Y.%m.%d")
+
 def logga(messaggio):
   print(get_curdatetime() + " - " + messaggio)
 

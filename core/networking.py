@@ -20,6 +20,7 @@ from core.utils import (
   parse_json,
   parse_json_array
 )
+from core.elk import Elk
 
 import os
 import config
@@ -52,6 +53,8 @@ class PredatorPacketAnalysis:
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
     if config.SEND_TO_SYSLOG == True:
       syslog.syslog(stringa_log)
+    if config.SEND_TO_ES == True:
+      Elk(config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"]).write_threat_l7(src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host, payload)
 
   def add_threat_l4(self, ip1, port1, ip2, port2, proto, flags, type_threat, type_flow, content_whitelisted, content_size, content_session_id, reporting, sni, host):
     if type_flow == "dst":
@@ -63,12 +66,16 @@ class PredatorPacketAnalysis:
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
     if config.SEND_TO_SYSLOG == True:
       syslog.syslog(stringa_log)
+    if config.SEND_TO_ES == True:
+      Elk(config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"]).write_threat_l4(src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host)
 
   def add_threat_dns(self, pkt, sport, dport, proto, event, rdata, qname):
     stringa_log = "LOG=PREDATOR_THREAT SRC={} SPORT={} DST={} DPORT={} PROTO={} FLAGS=ND WHITELISTED_CONTENT=N REPORTING={} EVENT={} RDATA={} FQDN={}".format(pkt[IP].src, sport, pkt[IP].dst, dport, proto, get_type_ip_fqdn_warn("", qname), event, rdata, qname)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
     if config.SEND_TO_SYSLOG == True:
       syslog.syslog(stringa_log)
+    if config.SEND_TO_ES == True:
+      Elk(config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"]).write_threat_dns(pkt[IP].src, sport, pkt[IP].dst, dport, proto, get_type_ip_fqdn_warn("", qname), event, rdata, qname)
 
   def get_matrix_connections(self):
     return self.matrix_connections

@@ -155,11 +155,21 @@ start() {
     echo ""
     update_full
     if [ "${1}" == "daemon" ]; then
-      nohup $PATH_VENV/bin/python3 -u $APP_PATH >> ${LOG_PATH}/predator_std.log 2>&1 &
-      echo $! > $PID_FILE
-      echo "Service started."
+      if [ -f "/.dockerenv" ]; then
+	nohup python3 -u $APP_PATH &
+	echo $! > $PID_FILE
+	echo "Service started."
+      else
+        nohup $PATH_VENV/bin/python3 -u $APP_PATH >> ${LOG_PATH}/predator_std.log 2>&1 &
+        echo $! > $PID_FILE
+        echo "Service started."
+      fi
     else
-      $PATH_VENV/bin/python3 -u $APP_PATH
+      if [ -f "/.dockerenv" ]; then
+        python3 -u $APP_PATH
+      else
+        $PATH_VENV/bin/python3 -u $APP_PATH
+      fi
     fi
 }
 

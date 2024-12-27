@@ -1,0 +1,85 @@
+services:
+  create_certs:
+    container_name: predator_es_create_certs
+    image: docker.elastic.co/elasticsearch/elasticsearch:$ELASTIC_VERSION
+    command: >
+      bash -c '
+        if [[ ! -f /certs/bundle.zip ]]; then
+          ./bin/elasticsearch-certutil ca --silent --pem --out /certs/elastic-stack-ca.zip
+          unzip -o /certs/elastic-stack-ca.zip -d /certs
+
+          ./bin/elasticsearch-certutil cert --silent --pem --ca-cert /certs/ca/ca.crt --ca-key /certs/ca/ca.key --out /certs/elastic-certificates.zip --name "predator_es"
+          unzip -o /certs/elastic-certificates.zip -d /certs
+
+          openssl pkcs12 -export -in /certs/predator_es/predator_es.crt \
+            -inkey /certs/predator_es/predator_es.key \
+            -certfile /certs/ca/ca.crt \
+            -out /certs/http.p12 \
+            -passout pass:
+
+          openssl pkcs12 -export -in /certs/predator_es/predator_es.crt \
+            -inkey /certs/predator_es/predator_es.key \
+            -certfile /certs/ca/ca.crt \
+            -out /certs/transport.p12 \
+            -passout pass:
+
+          ls -lR /certs
+        fi;
+        chown -R 1000:0 /certs;
+      '
+    user: "0"
+    working_dir: /usr/share/elasticsearch
+    volumes: 
+      - es_certs:/certs
+      - ./docker_utils:/usr/share/elasticsearch/scripts
+  core:
+    build: .
+    container_name: predator_core
+    hostname: predator-core
+    privileged: true
+    network_mode: host
+    restart: unless-stopped
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:$ELASTIC_VERSION
+    container_name: predator_es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.http.ssl.keystore.path=/usr/share/elasticsearch/config/certs/http.p12
+      - xpack.security.transport.ssl.keystore.path=/usr/share/elasticsearch/config/certs/transport.p12
+      - bootstrap.memory_lock=true
+      - ELASTIC_USERNAME=$ELASTIC_USERNAME
+      - ELASTIC_PASSWORD=$ELASTIC_PASSWORD 
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+      - es_logs:/usr/share/elasticsearch/logs
+      - es_certs:/usr/share/elasticsearch/config/certs
+      - ./docker_utils:/usr/share/elasticsearch/scripts
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    restart: unless-stopped
+  grafana:
+    image: grafana/grafana
+    container_name: predator_grafana
+    restart: unless-stopped
+    ports:
+     - '3000:3000'
+    volumes:
+      - grafana_data:/var/lib/grafana
+volumes:
+  es_data:
+    driver: local
+  es_logs:
+    driver: local
+  es_certs:
+    driver: local
+  grafana_data:
+    driver: local
