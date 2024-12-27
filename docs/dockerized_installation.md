@@ -32,6 +32,12 @@ Start Predator using following command:
    ```bash
    docker exec predator_core /bin/bash /opt/predator/predator.sh start
    ```
+
+Status is available running following command:
+   ```bash
+   docker exec predator_core /opt/predator/predator.sh status
+   ```
+
 Logs are available running following command:
    ```bash
    docker logs -ft predator_core

@@ -13,10 +13,15 @@ Clone the project (e.g., `/opt/predator`):
    ```
 
 ## Starting Predator
-Start Predator using following command
+Start Predator using following command:
    ```bash
    python3 ./predator.py
    # or
    ./predator.sh start
    ```
    **Note**: Root privileges are required.
+
+Status is available running:
+   ```bash
+   ./predator.sh status
+   ```
