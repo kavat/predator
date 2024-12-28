@@ -73,16 +73,15 @@ services:
         soft: 65535
         hard: 65535
     restart: unless-stopped
-#  dashboard:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile.predator_dashboard
-#    container_name: predator_dashboard
-#    ports: 
-#      - "127.0.0.1:8888:8888"
-#    depends_on: 
-#      - elasticsearch
-#    restart: unless-stopped
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.predator_dashboard
+    container_name: predator_dashboard
+    network_mode: host
+    depends_on: 
+      - elasticsearch
+    restart: unless-stopped
 
 volumes:
   es_data:

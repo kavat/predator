@@ -246,14 +246,12 @@ class HttpProxy(BaseHTTPRequestHandler):
 
   def do_GET(self):
 
-    if self.path == config.LINK_DOWNLOAD_CA:
+    if self.path.startswith(config.LINK_DOWNLOAD_CA):
       self.send_cacert()
       return
 
-    if self.path.startswith("http://predator.dashboard"):
-      self.path = self.path.replace("http://predator.dashboard", "http://127.0.0.1:8888")
-
-    print(self)
+    if self.path.startswith(config.LINK_DASHBOARD):
+      self.path = self.path.replace(config.LINK_DASHBOARD, config.DASHBOARD_URL)
 
     req = self
     content_length = int(req.headers.get("Content-Length", 0))
@@ -417,11 +415,18 @@ class HttpProxy(BaseHTTPRequestHandler):
     return text
 
   def send_cacert(self):
-    with open(config.CA_CRT, "rb") as f:
-      data = f.read()
+
+    data = ""
+    if os.path.isfile(config.CA_CRT):
+      with open(config.CA_CRT, "rb") as f:
+        data = f.read()
 
     self.send_response(200, "OK")
-    self.send_header("Content-Type", "application/x-x509-ca-cert")
+    if data != "":
+      self.send_header("Content-Type", "application/x-x509-ca-cert")
+    else:
+      data = str.encode("CA not generated, please invoke proper API")
+      self.send_header("Content-Type", "text/html")
     self.send_header("Content-Length", str(len(data)))
     self.send_header("Connection", "close")
     self.end_headers()

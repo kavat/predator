@@ -60,7 +60,8 @@ CERT_KEY = "{}/certs/cert.key".format(predator_file_path)
 CERT_DIR = "{}/certs".format(predator_file_path)
 CA_KEY_SIZE = 2048
 CERT_KEY_SIZE = 2048
-LINK_DOWNLOAD_CA = "http://predator.fuck/"
+LINK_DOWNLOAD_CA = "http://predator.fuck"
+LINK_DASHBOARD = "http://predator.dashboard"
 PROXY_TIMEOUT = 3
 PROXY_PROTOCOL = "HTTP/1.1"
 
@@ -81,6 +82,8 @@ ES_TLS = True
 ES_USERNAME = "elastic"
 ES_PASSWORD = "hifjeut67_hhgR77jih"
 ES_INDEX_PREFIX = "predator"
+
+DASHBOARD_URL = "http://127.0.0.1:8888"
 
 IDS = True
 PROXY = True
