@@ -83,6 +83,8 @@ class Library:
         elif file_name.endswith("_fqdn.json"):
           self.upd_blacklist_fqdn(parse_json(file_path))
         elif file_name == "tor_nodes.json":
+          pippo = parse_json(file_path)
+          print(pippo)
           self.upd_blacklist_ip(parse_json(file_path))
         else:
           logger.warning(f"Ignoring unknown file: {file_name}")

@@ -32,7 +32,7 @@ update_full() {
     curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT}/api -d "{\"func\":\"loadjson\",\"file_json\":\"anubi_${anno}_${mese}_ip.json\"}"
   done
         
-  cat "${PATH_ANUBI_SIGNATURES}/ips/tor.list" | grep "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | awk '{print "\\\""$1"\\\":\\\"tor\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > ${JSON_PATH}/tor_nodes.json
+  cat "${PATH_ANUBI_SIGNATURES}/ips/tor.list" | grep "[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}" | awk -F':' '{print "\\\""$1"\\\":\\\"tor\\\""}' | xargs echo | sed "s/ /,/g" | sed "s/^/{/g" | sed "s/$/}/g" > ${JSON_PATH}/tor_nodes.json
   curl -XPOST -s -H 'content-type: application/json' http://${MANAGEMENT_HOST}:${MANAGEMENT_PORT}/api -d "{\"func\":\"loadjson\",\"file_json\":\"tor_nodes.json\"}"
 
   echo "Updating FQDN"
