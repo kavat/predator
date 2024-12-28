@@ -78,10 +78,15 @@ services:
       context: .
       dockerfile: Dockerfile.predator_dashboard
     container_name: predator_dashboard
+    command: >
+      bash -c '
+        cd /opt/predator
+        python3 dashboard.py
+      '
     network_mode: host
     depends_on: 
       - elasticsearch
-    restart: unless-stopped
+    restart: always
 
 volumes:
   es_data:
