@@ -3,9 +3,9 @@ Predator allows filters to whitelist events raised.
 
 Filter can be grouped as:
 - **layer4**: array with key *all* or specific IP and key *procotolo_port* (one or multiple comma separated
-- **fadn** -> dns_requests: array with values specific DNS resolutions
-           -> all -> wild: array with values domains with wildcard as prefix
-           -> all -> static: array with values specific domains
+- **fqdn** -> dns_requests: array with values specific DNS resolutions
+- **fqdn** -> all -> wild: array with values domains with wildcard as prefix
+- **fqdn** -> all -> static: array with values specific domains
 
 Below is reported the example of JSON used to whitelist IPs and domains
 
