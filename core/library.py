@@ -181,12 +181,6 @@ class Library:
     else:
       return "no"
 
-  def _handle_whitelist_fqdn_servernames(self, message: str) -> str:
-    if message in self.whitelist["fqdn"]["servernames"]:
-      return self.whitelist["fqdn"]["servernames"][message]
-    else:
-      return "no"
-
   def _handle_whitelist_fqdn_all_static(self, message: str) -> str:
     if message in self.whitelist["fqdn"]["all"]["static"]:
       return self.whitelist["fqdn"]["all"]["static"][message]
@@ -211,12 +205,6 @@ class Library:
     else:
       return "no"
 
-  def _handle_whitelist_fqdn_all_static(self, message: str) -> str:
-    if message in self.whitelist["fqdn"]["all"]["static"]:
-      return self.whitelist["fqdn"]["all"]["static"][message]
-    else:
-      return "no"
-
   def _handle_pattern_tcp_udp(self, message: str) -> str:
     return "|".join(self.pattern_tcp_udp)
 
@@ -224,7 +212,7 @@ class Library:
     return "|".join(self.whitelist["fqdn"]["all"]["wild"])
 
   def _handle_get_whitelist_fqdn_servernames(self, message: str) -> str:
-    return "|".join(self.whitelist["fqdn"]["servernames"])
+    return "{}|{}".format("|".join(self.whitelist["fqdn"]["all"]["static"]),"|".join(self.whitelist["fqdn"]["all"]["wild"]))
 
   def _handle_blacklist_ip(self, message: str) -> str:
     if message in self.blacklist_ip:

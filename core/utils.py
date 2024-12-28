@@ -199,8 +199,17 @@ def check_connection_content(predator_packet_analysis, init_conn_ip, init_conn_p
               if riga.strip() != "":
                 if riga.strip().startswith('Host'):
                   for riga_w in Library().client("get_whitelist_fqdn_servernames|").split("|"):
-                    if riga.strip().endswith(riga_w):
-                      return "Y"
+                    if riga_w.strip()[:1] == '*':
+                      str_pattern = ""
+                      if riga_w.strip()[-1] == '.':
+                        str_pattern = riga_w.strip()[1:-1]
+                      else:
+                        str_pattern = riga_w.strip()[1:]
+                      if str_pattern != "" and riga.strip().endswith(str_pattern):
+                        return "Y"
+                    else:
+                      if riga.strip() == "Host: {}".format(riga_w):
+                        return "Y"
   except Exception as e:
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().critical(e, exc_info=True)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("Error checking session content {} {} {}:{} -> {}:{} = {}".format(label, flags, init_conn_ip, init_conn_port, endpoint_conn_ip, endpoint_conn_port, e))
@@ -214,8 +223,17 @@ def check_connection_content(predator_packet_analysis, init_conn_ip, init_conn_p
               if riga.strip() != "":
                 if riga.strip().startswith('Host'):
                   for riga_w in Library().client("get_whitelist_fqdn_servernames|").split("|"):
-                    if riga.strip().endswith(riga_w):
-                      return "Y"
+                    if riga_w[:1] == '*':
+                      str_pattern = ""
+                      if riga_w[:-1] == '.':
+                        str_pattern = riga_w[-1]
+                      else:
+                        str_pattern = riga_w[1:]
+                      if str_pattern != "" and riga.strip().endswith(str_pattern):
+                        return "Y"
+                    else: 
+                      if riga.strip() == "Host: {}".format(riga_w):
+                        return "Y"
   except Exception as e:
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().critical(e, exc_info=True)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("Error checking session content {} {} {}:{} -> {}:{} = {}".format(label, flags, endpoint_conn_ip, endpoint_conn_port, init_conn_ip, init_conn_port, e))
