@@ -33,12 +33,16 @@ services:
       - es_certs:/certs
       - ./docker_utils:/usr/share/elasticsearch/scripts
   core:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.predator_core
     container_name: predator_core
     hostname: predator-core
     privileged: true
     network_mode: host
     restart: unless-stopped
+    volumes:
+      - core_certs:/opt/predator/certs
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:$ELASTIC_VERSION
     container_name: predator_es
@@ -65,15 +69,21 @@ services:
       memlock:
         soft: -1
         hard: -1
+      nofile:
+        soft: 65535
+        hard: 65535
     restart: unless-stopped
-  grafana:
-    image: grafana/grafana
-    container_name: predator_grafana
-    restart: unless-stopped
-    ports:
-     - '3000:3000'
-    volumes:
-      - grafana_data:/var/lib/grafana
+#  dashboard:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.predator_dashboard
+#    container_name: predator_dashboard
+#    ports: 
+#      - "127.0.0.1:8888:8888"
+#    depends_on: 
+#      - elasticsearch
+#    restart: unless-stopped
+
 volumes:
   es_data:
     driver: local
@@ -81,5 +91,6 @@ volumes:
     driver: local
   es_certs:
     driver: local
-  grafana_data:
+  core_certs:
     driver: local
+

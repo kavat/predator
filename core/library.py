@@ -140,7 +140,7 @@ class Library:
       else:
         return "no_handler for func {}".format(func)
     except Exception as e:
-      logger.error(f"Error parsing request: {e}")
+      logger.critical(e, exc_info=True)
       return "error"
 
   def _handle_dns_add(self, message: str) -> str:
@@ -177,19 +177,19 @@ class Library:
 
   def _handle_whitelist(self, message: str) -> str:
     if message in self.whitelist:
-      return self.whitelist[message]
+      return "yes"
     else:
       return "no"
 
   def _handle_whitelist_fqdn_all_static(self, message: str) -> str:
     if message in self.whitelist["fqdn"]["all"]["static"]:
-      return self.whitelist["fqdn"]["all"]["static"][message]
+      return "yes"
     else:
       return "no"
 
   def _handle_whitelist_fqdn_dns_requests(self, message: str) -> str:
     if message in self.whitelist["fqdn"]["dns_requests"]:
-      return self.whitelist["fqdn"]["dns_requests"][message]
+      return "yes"
     else:
       return "no"
 
@@ -201,7 +201,7 @@ class Library:
 
   def _handle_whitelist_fqdn(self, message: str) -> str:
     if message in self.whitelist["fqdn"]:
-      return self.whitelist["fqdn"][message]
+      return "yes"
     else:
       return "no"
 

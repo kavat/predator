@@ -1,0 +1,31 @@
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+WORKDIR /opt
+
+RUN mkdir predator
+
+ADD ./dashboard/core ./predator/core
+ADD dashboard/templates ./predator/templates
+
+COPY dashboard/config.py ./predator/config.py
+COPY dashboard/dashboard.py ./predator/dashboard.py
+
+RUN mkdir -p ./predator/var/log
+
+WORKDIR /tmp
+
+COPY dashboard/requirements_system.txt .
+COPY dashboard/requirements_python.txt .
+
+RUN apt-get update && \
+    cat requirements_system.txt | xargs apt-get install -y
+
+RUN pip3 install -r requirements_python.txt
+
+WORKDIR /opt/predator
+
+ENTRYPOINT ["tail", "-f", "/dev/null"]
+
+EXPOSE 8888/tcp

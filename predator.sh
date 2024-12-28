@@ -4,8 +4,10 @@ APP_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 APP_PATH="${APP_DIR}/predator.py"
 CONF_PATH="${APP_DIR}/config.py"
+CERTS_PATH="${APP_DIR}/certs"
 JSON_PATH="${APP_DIR}/conf/json"
 LOG_PATH="${APP_DIR}/var/log"
+RUN_PATH="${APP_DIR}/var/run"
 PID_FILE="${APP_DIR}/var/run/predator.pid"
 PATH_ANUBI_SIGNATURES="${APP_DIR}/../anubi-signatures"
 PATH_VENV="${APP_DIR}/predator_env/"
@@ -13,6 +15,10 @@ MANAGEMENT_HOST=$(cat ${CONF_PATH} | grep MANAGEMENT_HOST | awk -F' = ' '{print 
 MANAGEMENT_PORT=$(cat ${CONF_PATH} | grep MANAGEMENT_PORT | awk -F' = ' '{print $2}' | sed "s/\"//g")
 PROXY_PORT=$(cat ${CONF_PATH} | grep PROXY_PORT | awk -F' = ' '{print $2}' | sed "s/\"//g")
 DUMMY_PORT=$(cat ${CONF_PATH} | grep DUMMY_PORT | awk -F' = ' '{print $2}' | sed "s/\"//g")
+
+mkdir -p $LOG_PATH
+mkdir -p $RUN_PATH
+mkdir -p $CERTS_PATH
 
 update_full() {
         

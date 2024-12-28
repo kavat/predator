@@ -250,6 +250,11 @@ class HttpProxy(BaseHTTPRequestHandler):
       self.send_cacert()
       return
 
+    if self.path.startswith("http://predator.dashboard"):
+      self.path = self.path.replace("http://predator.dashboard", "http://127.0.0.1:8888")
+
+    print(self)
+
     req = self
     content_length = int(req.headers.get("Content-Length", 0))
     req_body = self.rfile.read(content_length) if content_length else b""

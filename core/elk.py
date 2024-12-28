@@ -69,6 +69,7 @@ class Elk:
         'src_ip': src_ip,
         'src_port': src_port,
         'dst_ip': dst_ip,
+        'dst_port': dst_port,
         'proto': proto,
         'flags': flags,
         'content_whitelisted': content_whitelisted,
@@ -88,8 +89,9 @@ class Elk:
     try:
       document = {
         'src_ip': src_ip,
-        'src_port': src_port,
+        'src_port': sport,
         'dst_ip': dst_ip,
+        'dst_port': dport,
         'proto': proto,
         'reporting': reporting,
         'event': event,
