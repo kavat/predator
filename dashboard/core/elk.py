@@ -4,8 +4,6 @@ from elasticsearch import Elasticsearch
 from elasticsearch.helpers import scan
 from datetime import datetime
 
-from core.utils import get_es_index_date
-
 class Elk:
 
   def __init__(self):
