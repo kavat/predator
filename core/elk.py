@@ -2,6 +2,7 @@ import config
 
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import scan
+from datetime import datetime
 
 from core.utils import get_es_index_date
 
@@ -43,6 +44,7 @@ class Elk:
   def write_threat_l7(self, src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host, payload):
     try:
       document = {
+        "@timestamp": datetime.utcnow().isoformat(),
         'src_ip': src_ip,
         'src_port': src_port,
         'dst_ip': dst_ip,
@@ -66,6 +68,7 @@ class Elk:
   def write_threat_l4(self, src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host):
     try:
       document = {
+        "@timestamp": datetime.utcnow().isoformat(),
         'src_ip': src_ip,
         'src_port': src_port,
         'dst_ip': dst_ip,
@@ -88,6 +91,7 @@ class Elk:
   def write_threat_dns(self, src_ip, sport, dst_ip, dport, proto, reporting, event, rdata, qname):
     try:
       document = {
+        "@timestamp": datetime.utcnow().isoformat(),
         'src_ip': src_ip,
         'src_port': sport,
         'dst_ip': dst_ip,

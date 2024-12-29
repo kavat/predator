@@ -17,6 +17,9 @@ curl -ks -X PUT -u $ELASTIC_USERNAME:$ELASTIC_PASSWORD "https://localhost:9200/_
       "enabled": false
     },
     "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
       "src_ip": {
         "type": "keyword"
       },
