@@ -45,11 +45,11 @@ A simple interface is provided as management console and it is available at `htt
 Performs SSL termination and traffic inspection based on rules.
 
 ### Default Settings
-Controlled via `PROXY` setting in `config.py` (default: `False`):
+Controlled via `PROXY` setting in `config.py` (default: `True`):
   ```python
   PROXY_HOST = "127.0.0.1"
   PROXY_PORT = 7777
-  PROXY = False
+  PROXY = True
   ```
 
 ## Dummy

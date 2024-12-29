@@ -1,4 +1,9 @@
-# Predator standalone installation
+# Predator dockerized installation
+Dockerized version provides full Predator ecosystem:
+- **Predator core**, Predator complete tool
+- **Elasticsearch**, threats logs retention
+- **Predator dashboard**, dashboard for threats visualisation
+
 Tested procedure is related to Ubuntu 22.04 LTS
 
 ## Dependencies
@@ -41,4 +46,8 @@ Status is available running following command:
 Logs are available running following command:
    ```bash
    docker logs -ft predator_core
+   docker logs -ft predator_dashboard
    ```
+
+After set proxy in browser (refer to [config.py](./config.md) for feature enabling, generate CA through API and import in browser in order to complete SSL interception), visit [http://predator.dashboard](http://predator.dashboard).
+**Note**: dashboard page is only reachable through proxy
