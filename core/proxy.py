@@ -23,7 +23,7 @@ import brotli
 import websocket
 
 from core.dummy import Dummy
-from core.common_utils import id_generator
+from core.common_utils import id_generator, clear_old_certificates
 
 from http.client import HTTPMessage
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -190,7 +190,8 @@ class HttpProxy(BaseHTTPRequestHandler):
     self.wfile = self.connection.makefile("wb", self.wbufsize)
 
     conntype = self.headers.get("Proxy-Connection", "")
-    if self.protocol_version == "HTTP/1.1" and conntype.lower() != "close":
+    #if self.protocol_version == "HTTP/1.1" and conntype.lower() != "close":
+    if conntype.lower() != "close":
       self.close_connection = False
     else:
       self.close_connection = True
@@ -854,6 +855,7 @@ def try_decode_UTF8(data):
 def start_proxy(host, port, protocol):
   try:
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().info("Starting Proxy..")
+    clear_old_certificates()
     http.server.test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, protocol=protocol, port=port, bind=host)
   except Exception as e:
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().critical(e, exc_info=True)
