@@ -23,6 +23,8 @@ import brotli
 import websocket
 
 from core.dummy import Dummy
+from core.common_utils import id_generator
+
 from http.client import HTTPMessage
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
@@ -93,6 +95,11 @@ class HttpProxy(BaseHTTPRequestHandler):
 
     self.log_message(format, *args)
 
+  def clear_cert_files(self, files):
+    for _file in files:
+      if os.path.isfile(_file):
+        os.remove(_file)
+
   def do_CONNECT(self):
     host, _ = self.path.split(":", 1)
     if (os.path.isfile(config.CA_KEY) and os.path.isfile(config.CA_CRT) and os.path.isfile(config.CERT_KEY) and os.path.isdir(config.CERT_DIR)):
@@ -103,9 +110,10 @@ class HttpProxy(BaseHTTPRequestHandler):
       self.connect_relay()
 
   def connect_intercept(self):
+    id_cert_tmp = id_generator(30)
     hostname = self.path.split(":")[0]
-    certpath = os.path.join(config.CERT_DIR, hostname + ".pem")
-    confpath = os.path.join(config.CERT_DIR, hostname + ".conf")
+    certpath = os.path.join(config.CERT_DIR, "{}_{}.pem".format(hostname, id_cert_tmp))
+    confpath = os.path.join(config.CERT_DIR, "{}_{}.conf".format(hostname, id_cert_tmp))
 
     with self.lock:
       # stupid requirements from Apple: https://support.apple.com/en-us/HT210176
@@ -171,7 +179,13 @@ class HttpProxy(BaseHTTPRequestHandler):
       self.connection = context.wrap_socket(self.connection, server_side=True)
     except ssl.SSLEOFError:
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().info(self.id_thread + " - Handshake refused by " + hostname)
+      self.clear_cert_files([certpath, confpath])
       return
+    except ssl.SSLZeroReturnError:
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().info(self.id_thread + " - TLS connection closed by " + hostname)
+      self.clear_cert_files([certpath, confpath])
+      return
+    self.clear_cert_files([certpath, confpath])
     self.rfile = self.connection.makefile("rb", self.rbufsize)
     self.wfile = self.connection.makefile("wb", self.wbufsize)
 
@@ -311,13 +325,13 @@ class HttpProxy(BaseHTTPRequestHandler):
 
     except Exception as e:
       if type(e).__name__ != "socket.timeout" and type(e).__name__ != "timeout" and type(e).__name__ != "OSError" and type(e).__name__ != "BrokenPipeError":
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().critical(e, exc_info=True)
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().critical("{} - Exception through {}: {}".format(self.id_thread, netloc, e), exc_info=True)
       if config.DUMMY:
         self.duplicate_packet(self.command, path, req_body, dict(req.headers), 200, "Richiesta bloccata", {}, netloc, origin, self.tls.conns[origin])
       if origin in self.tls.conns:
         del self.tls.conns[origin]
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().critical(self.id_thread + " - Errore su richiesta verso " + req.headers["Host"] + ", ritorno 502")
-      self.send_error(502)
+      if type(e).__name__ != "SSLEOFError":
+        self.send_error(502)
 
     try:
       # chiudo la connessione per evitare il loading infinito della pagina
@@ -388,6 +402,7 @@ class HttpProxy(BaseHTTPRequestHandler):
     return data
 
   def decode_content_body(self, data: bytes, encoding: str, id_thread: str, hostname: str) -> bytes:
+    text = ""
     if encoding == "identity":
       text = data
     elif encoding in ("gzip", "x-gzip"):
@@ -404,7 +419,8 @@ class HttpProxy(BaseHTTPRequestHandler):
       if isinstance(data, (bytes, bytearray)):
         text = brotli.decompress(data)
       else:
-        text = brotli.decompress(str.encode(data))
+        if data != "":
+          text = brotli.decompress(str.encode(data))
     else:
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().warn(id_thread + " - " + hostname + " Unknown Content-Encoding: " + encoding)
     if isinstance(text, (bytes, bytearray)):
@@ -800,7 +816,8 @@ def analyze_request(req, req_body, res, res_body, proxy_request, hostname):
     elif content_type.startswith("text/plain"):
       log_record_res(res_body, res, "plain_text", proxy_request, req.address_string(), hostname, "debug")
     else:
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().warn(proxy_request.id_thread + " - Unknown Content-Type: " + content_type)
+      if content_type != "": 
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().debug(proxy_request.id_thread + " - Unknown Content-Type: " + content_type)
 
     if res_body_text:
       log_record_res(res_body_text, res, "res_body_text", proxy_request, req.address_string(), hostname, "debug")
