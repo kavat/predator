@@ -1,7 +1,13 @@
-from core.logging import PredatorLogger
-
 import os
 import logging
+import requests
+import urllib3
+
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from core.logging import PredatorLogger
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 predator_file_path = os.path.dirname(__file__)
 

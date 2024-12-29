@@ -14,7 +14,7 @@ def index():
 @app.route("/query", methods=["GET", "POST"])
 def dashboard():
   query = None
-  results = []
+  results = {}
 
   if request.method == "POST":
     query = request.form.get("query", "*")
@@ -34,5 +34,6 @@ def dashboard():
 
 try:
   app.run(config.DASHBOARD_HOST, config.DASHBOARD_PORT)
-except Exception:
+except Exception as e:
+  print(e)
   print(traceback.format_exc())

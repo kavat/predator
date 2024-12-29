@@ -14,7 +14,7 @@ curl -ks -X PUT -u $ELASTIC_USERNAME:$ELASTIC_PASSWORD "https://localhost:9200/_
   },
   "mappings": {
     "_source": {
-      "enabled": false
+      "enabled": true
     },
     "properties": {
       "@timestamp": {

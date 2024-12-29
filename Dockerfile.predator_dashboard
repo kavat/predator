@@ -26,6 +26,6 @@ RUN pip3 install -r requirements_python.txt
 
 WORKDIR /opt/predator
 
-CMD ["python3", "/opt/predator/dashboard.py"]
+CMD ["/bin/bash", "-c", "python3 /opt/predator/dashboard.py >> /proc/1/fd/1 2>&1"]
 
 EXPOSE 8888/tcp

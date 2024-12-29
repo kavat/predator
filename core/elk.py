@@ -60,7 +60,7 @@ class Elk:
         'host': host,
         'payload': payload
       }
-      return self.client.index(index="{}-{}".format(config.ES_INDEX_PREFIX, get_es_index_date()), body=document)
+      return self.client.index(index="{}-{}".format(config.ES_INDEX_PREFIX, get_es_index_date()), document=document)
     except Exception as e:
       self.logger.get_logger().critical(e, exc_info=True) 
       return False
@@ -83,7 +83,7 @@ class Elk:
         'sni': sni,
         'host': host
       }
-      return self.client.index(index="{}-{}".format(config.ES_INDEX_PREFIX, get_es_index_date()), body=document)
+      return self.client.index(index="{}-{}".format(config.ES_INDEX_PREFIX, get_es_index_date()), document=document)
     except Exception as e:
       self.logger.get_logger().critical(e, exc_info=True)
       return False
@@ -102,7 +102,7 @@ class Elk:
         'rdata': rdata,
         'qname': qname
       }
-      return self.client.index(index="{}-{}".format(config.ES_INDEX_PREFIX, get_es_index_date()), body=document)
+      return self.client.index(index="{}-{}".format(config.ES_INDEX_PREFIX, get_es_index_date()), document=document)
     except Exception as e:
       self.logger.get_logger().critical(e, exc_info=True)
       return False
