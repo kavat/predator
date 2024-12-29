@@ -7,11 +7,7 @@ import config
 
 app = Flask(__name__)
 
-@app.route("/", methods=["GET"])
-def index():
-  return render_template("index.html", host=config.DASHBOARD_HOST, port=config.DASHBOARD_PORT)
-
-@app.route("/query", methods=["GET", "POST"])
+@app.route("/", methods=["GET", "POST"])
 def dashboard():
   query = None
   results = {}
