@@ -26,7 +26,7 @@ def dashboard():
     if "hits" in response:
       results = response["hits"]
 
-  return render_template("dashboard.html", query=query, results=results)
+  return render_template("index.html", query=query, results=results)
 
 try:
   app.run(config.DASHBOARD_HOST, config.DASHBOARD_PORT)
