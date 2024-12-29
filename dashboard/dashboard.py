@@ -27,7 +27,8 @@ def dashboard():
       }
     }
     response = Elk().query("predator-*", search_body)
-    results = response["hits"]["hits"]
+    if "hits" in response:
+      results = response["hits"]
 
   return render_template("dashboard.html", query=query, results=results)
 
