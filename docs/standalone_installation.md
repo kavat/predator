@@ -17,6 +17,7 @@ Clone the project (e.g., `/opt/predator`):
    source predator_env/bin/activate
    pip3 install -r requirements_python.txt
    mkdir -p /opt/predator/var/{log,run}
+   chmod +x /opt/predator/predator.sh
    ```
 
 ## Starting Predator
@@ -38,6 +39,9 @@ Start Predator dashboard using following command:
    ```bash
    cd dashboard
    ./predator_env/bin/python3 ./dashboard.py
+   # or
+   chmod +x dashboard.sh
+   ./dashboard.sh start
    ```
 **Note**: Dashboard can be used only with Elasticsearch
 **Note**: as default Dashboard is only reachable through Proxy at LINK_DASHBOARD URL because bind over 127.0.0.1, changing dasboard/config.py configuration Dasboard can be reached directly.

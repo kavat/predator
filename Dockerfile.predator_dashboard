@@ -25,6 +25,7 @@ RUN apt-get update && \
 RUN pip3 install -r requirements_python.txt
 
 WORKDIR /opt/predator
+RUN chmod +x ./dashboard.sh
 
 CMD ["/bin/bash", "-c", "python3 /opt/predator/dashboard.py >> /proc/1/fd/1 2>&1"]
 
