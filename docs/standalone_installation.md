@@ -1,4 +1,11 @@
 # Predator standalone installation
+
+Standalone version provides Predator ecosystem:
+- **Predator core**, Predator complete tool
+- **Predator dashboard**, dashboard for threats visualisation through Elasticsearch
+
+Elasticsearch is considered outside of standalone perimeter.
+
 Tested procedure is related to Ubuntu 22.04 LTS
 
 ## Dependencies
@@ -15,7 +22,7 @@ Clone the project (e.g., `/opt/predator`):
 ## Starting Predator
 Start Predator using following command:
    ```bash
-   python3 ./predator.py
+   ./predator_env/bin/python3 ./predator.py
    # or
    ./predator.sh start
    ```
@@ -25,3 +32,12 @@ Status is available running:
    ```bash
    ./predator.sh status
    ```
+
+## Starting Predator dashboard
+Start Predator dashboard using following command:
+   ```bash
+   cd dashboard
+   ./predator_env/bin/python3 ./dashboard.py
+   ```
+**Note**: Dashboard can be used only with Elasticsearch
+**Note**: as default Dashboard is only reachable through Proxy at LINK_DASHBOARD URL because bind over 127.0.0.1, changing dasboard/config.py configuration Dasboard can be reached directly.

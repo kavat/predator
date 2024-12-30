@@ -2,7 +2,7 @@
 Dockerized version provides full Predator ecosystem:
 - **Predator core**, Predator complete tool
 - **Elasticsearch**, threats logs retention
-- **Predator dashboard**, dashboard for threats visualisation
+- **Predator dashboard**, dashboard for threats visualisation through Elasticsearch
 
 Tested procedure is related to Ubuntu 22.04 LTS
 
@@ -50,4 +50,4 @@ Logs are available running following command:
    ```
 
 After set proxy in browser (refer to [config.py](./config.md) for feature enabling, generate CA through API and import in browser in order to complete SSL interception), visit [http://predator.dashboard](http://predator.dashboard).
-**Note**: dashboard page is only reachable through proxy
+**Note**: as default Dashboard is only reachable through Proxy at LINK_DASHBOARD URL because bind over 127.0.0.1, changing dasboard/config.py configuration Dasboard can be reached directly.
