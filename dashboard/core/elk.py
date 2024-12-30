@@ -32,7 +32,7 @@ class Elk:
     r = {}
     if self.client != 0:
       try:
-        r['hits'] = scan(self.client, index=index, query=query, raise_on_error=True, preserve_order=True, size=10, scroll='2m')
+        r['hits'] = scan(self.client, index=index, query=query, raise_on_error=False, preserve_order=True, size=10, scroll='2m')
         r['error'] = 'ok'
       except Exception as e:
         r['error'] = e
