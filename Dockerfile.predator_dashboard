@@ -11,6 +11,7 @@ ADD ./dashboard/templates ./predator/templates
 
 COPY ./dashboard/config.py.docker ./predator/config.py
 COPY ./dashboard/dashboard.py ./predator/dashboard.py
+COPY ./dashboard/dashboard.sh ./predator/dashboard.sh
 
 RUN mkdir -p ./predator/var/log
 
