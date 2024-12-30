@@ -11,6 +11,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 predator_file_path = os.path.dirname(__file__)
 
+PATH_LOCAL_JSON = "{}/var/db".format(predator_file_path)
+
 PATH_LOGGER_PREDATOR_MAIN = "{}/var/log/predator.log".format(predator_file_path)
 PATH_LOGGER_PREDATOR_DNS = "{}/var/log/predator_dns.log".format(predator_file_path)
 PATH_LOGGER_PREDATOR_THREATS = "{}/var/log/predator_threats.log".format(predator_file_path)
@@ -97,3 +99,4 @@ API = True
 DUMMY = False
 SEND_TO_SYSLOG = False
 SEND_TO_ES = False
+SEND_TO_LOCAL_JSON = True

@@ -9,7 +9,7 @@ RUN mkdir predator
 ADD ./dashboard/core ./predator/core
 ADD ./dashboard/templates ./predator/templates
 
-COPY ./dashboard/config.py ./predator/config.py
+COPY ./dashboard/config.py.docker ./predator/config.py
 COPY ./dashboard/dashboard.py ./predator/dashboard.py
 
 RUN mkdir -p ./predator/var/log

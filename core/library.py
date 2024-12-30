@@ -13,7 +13,6 @@ from core.common_utils import (
   parse_json_array
 )
 
-
 class Library:
   def __init__(self):
     self.blacklist_ip: Dict[str, str] = {}

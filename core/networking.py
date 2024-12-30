@@ -1,5 +1,6 @@
 from scapy.all import *
 from scapy.layers.tls import *
+from threading import Lock
 
 from core.library import Library
 from core.utils import (
@@ -16,9 +17,13 @@ from core.utils import (
   get_connection_content_size,
   get_connection_content_session_id,
   is_ip_checkable,
-  is_malicious_host,
-  parse_json,
-  parse_json_array
+  is_malicious_host
+)
+from core.common_utils import (
+  parse_json, 
+  parse_json_array, 
+  get_string_md5,
+  append_json_threat
 )
 from core.elk import Elk
 
@@ -34,6 +39,7 @@ class PredatorPacketAnalysis:
   def __init__(self, filter_string):
     self.filter_string = filter_string
     self.matrix_connections = {}
+    self.upd_lock = Lock()
 
   def print_matrix(self, flags):
     print("PRINT POST " + flags)
@@ -55,6 +61,24 @@ class PredatorPacketAnalysis:
       syslog.syslog(stringa_log)
     if config.SEND_TO_ES == True:
       Elk(config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"]).write_threat_l7(src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host, payload)
+    if config.SEND_TO_LOCAL_JSON == True:
+      with self.upd_lock:
+        append_json_threat(get_string_md5(self.filter_string), {
+          'src_ip': src_ip,
+          'src_port': src_port,
+          'dst_ip': dst_ip,
+          'dst_port': dst_port,
+          'protocol': proto,
+          'flags': flags,
+          'content_whitelisted': content_whitelisted,
+          'content_size': content_size,
+          'content_session_id': content_session_id,
+          'event': "{}_{}".format(type_threat, type_flow),
+          'reporting': reporting,
+          'sni': sni,
+          'host': host,
+          'payload': payload
+        })
 
   def add_threat_l4(self, ip1, port1, ip2, port2, proto, flags, type_threat, type_flow, content_whitelisted, content_size, content_session_id, reporting, sni, host):
     if type_flow == "dst":
@@ -68,6 +92,23 @@ class PredatorPacketAnalysis:
       syslog.syslog(stringa_log)
     if config.SEND_TO_ES == True:
       Elk(config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"]).write_threat_l4(src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host)
+    if config.SEND_TO_LOCAL_JSON == True:
+      with self.upd_lock:
+        append_json_threat(get_string_md5(self.filter_string), {
+          'src_ip': src_ip,
+          'src_port': src_port,
+          'dst_ip': dst_ip,
+          'dst_port': dst_port,
+          'protocol': proto,
+          'flags': flags,
+          'content_whitelisted': content_whitelisted,
+          'content_size': content_size,
+          'content_session_id': content_session_id,
+          'event': "{}_{}".format(type_threat, type_flow),
+          'reporting': reporting,
+          'sni': sni,
+          'host': host
+        })
 
   def add_threat_dns(self, pkt, sport, dport, proto, event, rdata, qname):
     stringa_log = "LOG=PREDATOR_THREAT SRC={} SPORT={} DST={} DPORT={} PROTO={} FLAGS=ND WHITELISTED_CONTENT=N REPORTING={} EVENT={} RDATA={} FQDN={}".format(pkt[IP].src, sport, pkt[IP].dst, dport, proto, get_type_ip_fqdn_warn("", qname), event, rdata, qname)
@@ -76,6 +117,19 @@ class PredatorPacketAnalysis:
       syslog.syslog(stringa_log)
     if config.SEND_TO_ES == True:
       Elk(config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"]).write_threat_dns(pkt[IP].src, sport, pkt[IP].dst, dport, proto, get_type_ip_fqdn_warn("", qname), event, rdata, qname)
+    if config.SEND_TO_LOCAL_JSON == True:
+      with self.upd_lock:
+        append_json_threat(get_string_md5(self.filter_string), {
+          'src_ip': pkt[IP].src,
+          'src_port': sport,
+          'dst_ip': pkt[IP].dst,
+          'dst_port': dport,
+          'protocol': proto,
+          'event': event,
+          'reporting': get_type_ip_fqdn_warn("", qname),
+          'rdata': rdata,
+          'qname': qname
+        })
 
   def get_matrix_connections(self):
     return self.matrix_connections

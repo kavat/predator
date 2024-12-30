@@ -8,8 +8,14 @@ import time
 import copy
 import ipaddress
 import syslog
+import hashlib
 
+from hashlib import md5
 from glob import glob
+from datetime import datetime
+
+def get_string_md5(string):
+  return hashlib.md5(string.encode()).hexdigest() 
 
 def parse_json_array(filename):
   ritorno = []
@@ -35,3 +41,9 @@ def clear_old_certificates():
     os.remove(old_csr)
   for old_cert in glob(os.path.join(config.CERT_DIR, "*.pem")):
     os.remove(old_cert)
+
+def append_json_threat(thread_name, data):
+  id_log = id_generator(30)
+  with open("{}/{}_{}.json".format(config.PATH_LOCAL_JSON, thread_name, id_log), 'w') as f:
+    data["@timestamp"] = datetime.utcnow().isoformat()
+    json.dump({'_id': id_log, '_source': data}, f)

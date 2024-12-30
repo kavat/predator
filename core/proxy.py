@@ -182,7 +182,7 @@ class HttpProxy(BaseHTTPRequestHandler):
       self.clear_cert_files([certpath, confpath])
       return
     except ssl.SSLZeroReturnError:
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().info(self.id_thread + " - TLS connection closed by " + hostname)
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().debug(self.id_thread + " - TLS connection closed by " + hostname)
       self.clear_cert_files([certpath, confpath])
       return
     self.clear_cert_files([certpath, confpath])
@@ -333,6 +333,9 @@ class HttpProxy(BaseHTTPRequestHandler):
         del self.tls.conns[origin]
       if type(e).__name__ != "SSLEOFError":
         self.send_error(502)
+    except ConnectionRefusedError:
+        self.wfile.write(b'Connection error')
+        self.send_error(402)
 
     try:
       # chiudo la connessione per evitare il loading infinito della pagina

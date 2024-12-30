@@ -8,6 +8,7 @@ CERTS_PATH="${APP_DIR}/certs"
 JSON_PATH="${APP_DIR}/conf/json"
 LOG_PATH="${APP_DIR}/var/log"
 RUN_PATH="${APP_DIR}/var/run"
+DB_PATH="${APP_DIR}/var/db"
 PID_FILE="${APP_DIR}/var/run/predator.pid"
 PATH_ANUBI_SIGNATURES="${APP_DIR}/../anubi-signatures"
 PATH_VENV="${APP_DIR}/predator_env/"
@@ -18,6 +19,7 @@ DUMMY_PORT=$(cat ${CONF_PATH} | grep DUMMY_PORT | awk -F' = ' '{print $2}' | sed
 
 mkdir -p $LOG_PATH
 mkdir -p $RUN_PATH
+mkdir -p $DB_PATH
 mkdir -p $CERTS_PATH
 
 update_full() {
@@ -84,8 +86,12 @@ check_json() {
   done
 }
 
-clean_log() {
+clean_logs() {
   rm -rf ${LOG_PATH}/predator*.log
+}
+
+clean_local_db() {
+  rm -rf ${DB_PATH}/*.json
 }
 
 status() {
@@ -124,6 +130,8 @@ status() {
   fi
   echo "Predator logs status: "
   ls -lht ${LOG_PATH}/predator*.log
+  echo -n "Predator local DB items $(ls ${DB_PATH}/*.json | wc -l)"
+  echo ""
 }
 
 start() {
@@ -217,8 +225,11 @@ case "$1" in
   check_json)
     check_json
   ;;
-  clean)
-    clean_log
+  clean_logs)
+    clean_logs
+  ;;
+  clean_local_db)
+    clean_local_db
   ;;
   start)
     start "daemon"
@@ -236,5 +247,5 @@ case "$1" in
     start "nodaemon"
   ;;
   *)
-  echo "Usage: $0 {start|stop|restart|run|rules|check_json|clean|status|tail}"
+  echo "Usage: $0 {start|stop|restart|run|rules|check_json|clean_logs|clean_local_db|status|tail}"
 esac

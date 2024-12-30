@@ -16,6 +16,7 @@ COPY predator.sh ./predator/predator.sh
 
 RUN mkdir -p ./predator/var/log
 RUN mkdir -p ./predator/var/run
+RUN mkdir -p ./predator/var/db
 
 WORKDIR /tmp
 
