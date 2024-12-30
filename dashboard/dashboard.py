@@ -22,6 +22,7 @@ def request_elk(query):
   response = Elk().query("predator-*", search_body)
   if "hits" in response:
     results = response["hits"]
+  return results
 
 def request_local_db(query):
   rit = []
