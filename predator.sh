@@ -231,6 +231,10 @@ case "$1" in
   clean_local_db)
     clean_local_db
   ;;
+  wipe)
+    clean_logs
+    clean_local_db
+  ;;
   start)
     start "daemon"
   ;;
@@ -247,5 +251,5 @@ case "$1" in
     start "nodaemon"
   ;;
   *)
-  echo "Usage: $0 {start|stop|restart|run|rules|check_json|clean_logs|clean_local_db|status|tail}"
+  echo "Usage: $0 {start|stop|restart|run|rules|check_json|clean_logs|clean_local_db|status|tail|wipe}"
 esac

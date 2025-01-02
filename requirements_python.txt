@@ -6,3 +6,4 @@ cryptography
 geoip2
 elasticsearch
 requests
+pysqlite3

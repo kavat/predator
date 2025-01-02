@@ -6,6 +6,7 @@ import logging
 predator_file_path = os.path.dirname(__file__)
 
 PATH_LOCAL_JSON = "{}/var/db".format(predator_file_path)
+PATH_SQLITE = "{}/var/db".format(predator_file_path)
 
 PATH_LOGGER_PREDATOR_MAIN = "{}/var/log/predator.log".format(predator_file_path)
 PATH_LOGGER_PREDATOR_DNS = "{}/var/log/predator_dns.log".format(predator_file_path)
@@ -70,12 +71,12 @@ PROXY_PROTOCOL = "HTTP/1.1"
 MALICIOUS_SUFFIXES = [".onion"]
 
 CIDRS = ['192.168.1.0/24']
-NICS_TO_SNIFF = ["vmbr0"]
-MANAGEMENT_HOST = "192.168.1.239"
+NICS_TO_SNIFF = ["ens18"]
+MANAGEMENT_HOST = "192.168.1.135"
 MANAGEMENT_PORT = 10000
 DUMMY_HOST = "127.0.0.1"
 DUMMY_PORT = 9999
-PROXY_HOST = "192.168.1.239"
+PROXY_HOST = "192.168.1.135"
 PROXY_PORT = 7777
 
 ES_URL = "https://127.0.0.1:9200"
@@ -94,3 +95,4 @@ DUMMY = False
 SEND_TO_SYSLOG = False
 SEND_TO_ES = True
 SEND_TO_LOCAL_JSON = False
+SEND_TO_SQLITE = False

@@ -20,6 +20,24 @@ Clone the project (e.g., `/opt/predator`):
    chmod +x /opt/predator/predator.sh
    ```
 
+## Forwarding preparation
+Threats logs can be forwarded to third-parties softwares, such:
+- **Elasticsearch**, (after set `SEND_TO_ES` to True) 
+Run following script after editing with proper settings:
+   ```bash
+   cd /opt/predator/docker_utils
+   chmod +x init_es.sh
+   ./init_es.sh 
+   ```
+
+- **SQlite**, (after set `SEND_TO_SQLITE` to True) 
+Run following script after editing with proper settings:
+   ```bash
+   cd /opt/predator/docker_utils
+   chmod +x init_es.sh
+   ./init_sqlite.sh 
+   ```
+
 ## Starting Predator
 Start Predator using following command:
    ```bash

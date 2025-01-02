@@ -20,7 +20,9 @@ Note the initial log level has set to INFO for all loggers as reported in config
 # Forward
 Predator can forward threats log to third-party software such:
 
-- **syslog**: if SEND_TO_SYSLOG is set to True, log are written into local syslog
-- **elasticsearch**: if SEND_TO_ES is set to True, log are sent to Elasticsearch server
+- **Syslog**: if SEND_TO_SYSLOG is set to True, log are written into local syslog
+- **Elasticsearch**: if SEND_TO_ES is set to True, log are sent to Elasticsearch server
+- **Local json**: if SEND_TO_LOCAL_JSON is set to True, log are stored in ./var/db directory
+- **SQLite**: if SEND_TO_SQLITE is set to True, log are written into local sqlite db 
 
 Refer to [config.py](./config.md) documentation.

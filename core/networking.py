@@ -26,6 +26,7 @@ from core.common_utils import (
   append_json_threat
 )
 from core.elk import Elk
+from core.sqlite import SQLite
 
 import os
 import config
@@ -57,6 +58,7 @@ class PredatorPacketAnalysis:
     Library().client("add_threat|{},{},{},{},{},{},{},{},static_patterns,{}".format(src_ip, dst_ip, src_port, dst_port, proto, flags, host, sni, type_threat))
     stringa_log = "LOG=PREDATOR_THREAT SRC={} SPORT={} DST={} DPORT={} PROTO={} FLAGS={} WHITELISTED_CONTENT={} CONTENT_SIZE={} CONTENT_SESSION_ID={} EVENT={}_{} REPORTING={} SNI={} HOST={} PAYLOAD={}".format(src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host, payload)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
+
     if config.SEND_TO_SYSLOG == True:
       syslog.syslog(stringa_log)
     if config.SEND_TO_ES == True:
@@ -88,6 +90,9 @@ class PredatorPacketAnalysis:
     Library().client("add_threat|{},{},{},{},{},{},{},{},{},{}".format(src_ip, dst_ip, src_port, dst_port, proto, flags, host, sni, reporting, type_threat))
     stringa_log = "LOG=PREDATOR_THREAT SRC={} SPORT={} DST={} DPORT={} PROTO={} FLAGS={} WHITELISTED_CONTENT={} CONTENT_SIZE={} CONTENT_SESSION_ID={} EVENT={}_{} REPORTING={} SNI={} HOST={}".format(src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
+
+    if config.SEND_TO_SQLITE == True:
+      SQLite().write_threat_l4(src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host)
     if config.SEND_TO_SYSLOG == True:
       syslog.syslog(stringa_log)
     if config.SEND_TO_ES == True:
@@ -113,9 +118,12 @@ class PredatorPacketAnalysis:
   def add_threat_dns(self, pkt, sport, dport, proto, event, rdata, qname):
     stringa_log = "LOG=PREDATOR_THREAT SRC={} SPORT={} DST={} DPORT={} PROTO={} FLAGS=ND WHITELISTED_CONTENT=N REPORTING={} EVENT={} RDATA={} FQDN={}".format(pkt[IP].src, sport, pkt[IP].dst, dport, proto, get_type_ip_fqdn_warn("", qname), event, rdata, qname)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
+
     if config.SEND_TO_SYSLOG == True:
       syslog.syslog(stringa_log)
-    if config.SEND_TO_ES == True:
+    if config.SEND_TO_SQLITE == True:
+      SQLite().write_threat_dns(pkt[IP].src, sport, pkt[IP].dst, dport, proto, get_type_ip_fqdn_warn("", qname), event, rdata, qname)
+    if config.SEND_TO_ES:
       Elk(config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"]).write_threat_dns(pkt[IP].src, sport, pkt[IP].dst, dport, proto, get_type_ip_fqdn_warn("", qname), event, rdata, qname)
     if config.SEND_TO_LOCAL_JSON == True:
       with self.upd_lock:

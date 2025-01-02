@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template
 
 from core.elk import Elk
+from core.sqlite import SQLite
 
 import traceback
 import config
@@ -13,6 +14,7 @@ app = Flask(__name__)
 def request_elk(query):
   results = {}
   search_body = {
+    "sort": [{"@timestamp": {"order": "desc"}}],
     "query": {
       "query_string": {
         "query": query
@@ -35,6 +37,11 @@ def request_local_db(query):
         rit.append(json.loads(content))
   return rit
 
+def request_sqlite(query):
+  if query == "" or query == "*":
+    query = "select * from threats order by timestamp desc;"
+  return SQLite().get(query)
+
 @app.route("/", methods=["GET", "POST"])
 def dashboard():
   query = None
@@ -49,6 +56,11 @@ def dashboard():
     title = "Local DB threats archive"
     if request.method == "POST":
       results = request_local_db(request.form.get("query", "*"))
+
+  if config.READ_THREATS_FROM_SQLITE == True:
+    title = "SQLite threats archive"
+    if request.method == "POST":
+      results = request_sqlite(request.form.get("query", "*"))
 
   return render_template("index.html", title=title, query=query, results=results)
 

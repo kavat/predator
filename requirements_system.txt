@@ -4,3 +4,5 @@ git
 libpcap-dev
 curl
 iproute2
+sqlite3
+libsqlite3-dev

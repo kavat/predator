@@ -53,8 +53,7 @@ class Elk:
         'content_whitelisted': content_whitelisted,
         'content_size': content_size,
         'content_session_id': content_session_id,
-        'type_threat': type_threat,
-        'event': "{}_{}".format(type_flow, type_flow), 
+        'event': "{}_{}".format(type_threat, type_flow), 
         'reporting': reporting,
         'sni': sni,
         'host': host,
@@ -78,7 +77,7 @@ class Elk:
         'content_whitelisted': content_whitelisted,
         'content_size': content_size,
         'content_session_id': content_session_id,
-        'event': "{}_{}".format(type_flow, type_flow),
+        'event': "{}_{}".format(type_threat, type_flow),
         'reporting': reporting,
         'sni': sni,
         'host': host
