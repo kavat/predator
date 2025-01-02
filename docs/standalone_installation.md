@@ -34,7 +34,7 @@ Run following script after editing with proper settings:
 Run following script after editing with proper settings:
    ```bash
    cd /opt/predator/docker_utils
-   chmod +x init_es.sh
+   chmod +x init_sqlite.sh
    ./init_sqlite.sh 
    ```
 

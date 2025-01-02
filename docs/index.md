@@ -12,4 +12,5 @@ Predator official documentation
 - [Dockerized installation](./dockerized_installation.md)
 - [File config.py](./config.md)
 - [Logging](./logging.md)
+- [Dashboard](./dasboard.md)
 - [Screenshots](./screenshots.md)

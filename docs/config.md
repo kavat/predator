@@ -32,4 +32,5 @@ API = True                                    # Module API enabling
 DUMMY = False                                 # Module DUMMY enabling
 SEND_TO_SYSLOG = False                        # Local syslog forward enabling
 SEND_TO_ES = False                            # Elasticsearch forward enabling
+SEND_TO_SQLITE = False                        # SQLite forward enabling
 ```
