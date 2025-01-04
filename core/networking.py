@@ -50,6 +50,34 @@ class PredatorPacketAnalysis:
   def get_handler(self):
     return self
 
+  def send_rst_packet(self, flow, packet):
+    ethernet_layer = packet["Ethernet"]
+    ip_layer = packet["IP"]
+    tcp_layer = packet["TCP"]
+
+    seq = tcp_layer.seq + len(tcp_layer.payload)
+
+    rst_pkt = Ether(src=ethernet_layer.dst, dst=ethernet_layer.src) / \
+              IP(src=ip_layer.dst, dst=ip_layer.src) / \
+              TCP(sport=tcp_layer.dport, dport=tcp_layer.sport, seq=seq, flags="RA")
+
+    #sendp(rst_pkt, iface=config.NIC_TO_SEND_RST_PACKET, verbose=0)
+    sendp(rst_pkt, verbose=0)
+    print(f"LINUX: RST sent to {ip_layer.src}:{tcp_layer.sport} -> {ip_layer.dst}:{tcp_layer.dport}")
+
+  def send_rst_packet_old(self, flow, packet):
+    ethernet_layer = packet["Ethernet"]
+    ip_layer = packet["IP"]
+    tcp_layer = packet["TCP"]
+
+    rst_pkt = Ether(src=ethernet_layer.dst, dst=ethernet_layer.src) / \
+              IP(src=ip_layer.dst, dst=ip_layer.src) / \
+              TCP(sport=tcp_layer.dport, dport=tcp_layer.sport, seq=tcp_layer.ack, flags="R")
+
+    #sendp(rst_pkt, iface=config.NIC_TO_SEND_RST_PACKET, verbose=0)
+    sendp(rst_pkt, verbose=0)
+    print(f"MAC: RST sent to {ip_layer.src}:{tcp_layer.sport} -> {ip_layer.dst}:{tcp_layer.dport}")
+
   def add_threat_l7(self, ip1, port1, ip2, port2, proto, flags, type_threat, type_flow, content_whitelisted, content_size, content_session_id, reporting, sni, host, payload):
     if type_flow == "dst":
       (src_ip, src_port, dst_ip, dst_port) = ip2, port2, ip1, port1
@@ -303,6 +331,8 @@ class PredatorPacketAnalysis:
             content_size = get_connection_content_size(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
             content_session_id = get_connection_content_session_id(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
             self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_ip", ip_type_flow, content_whitelisted, content_size, content_session_id, get_type_ip_fqdn_warn(ip_check, ""), sni, host)
+            if config.SEND_RST_PACKET == True and ip_type_flow == "dst":
+              self.send_rst_packet(ip_type_flow, packet)
         host, content_size = self.get_host_from_packet_raw(packet)
         if is_malicious_host(host):
           reporting = get_type_ip_fqdn_warn("", host)

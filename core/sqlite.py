@@ -20,7 +20,7 @@ class SQLite:
   def write_threat_l4(self, src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host):
     ret = False
     try:
-      sql = "insert into threats (id, src_ip, src_port, dst_ip, dst_port, protocol, flags, content_whitelisted, content_size, content_session_id, event, reporting, sni, host) VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}_{}, {}, {}, {})".format(id_generator(32), src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host)
+      sql = "insert into threats (id, src_ip, src_port, dst_ip, dst_port, protocol, flags, content_whitelisted, content_size, content_session_id, event, reporting, sni, host) VALUES ('{}', '{}', {}, '{}', {}, '{}', '{}', '{}', {}, '{}', '{}_{}', '{}', '{}', '{}')".format(id_generator(32), src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host)
       count = self.cursor.execute(sql)
       self.sqliteConnection.commit()
       self.cursor.close()
@@ -36,7 +36,7 @@ class SQLite:
   def write_threat_l7(self, src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host, payload):
     ret = False
     try:
-      sql = "insert into threats (id, src_ip, src_port, dst_ip, dst_port, protocol, flags, content_whitelisted, content_size, content_session_id, event, reporting, sni, host) VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}_{}, {}, {}, {}, {})".format(id_generator(32), src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host, payload)
+      sql = "insert into threats (id, src_ip, src_port, dst_ip, dst_port, protocol, flags, content_whitelisted, content_size, content_session_id, event, reporting, sni, host, payload) VALUES ('{}', '{}', {}, '{}', {}, '{}', '{}', '{}', {}, '{}', '{}_{}', '{}', '{}', '{}', '{}')".format(id_generator(32), src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host, payload)
       count = self.cursor.execute(sql)
       self.sqliteConnection.commit()
       self.cursor.close()
@@ -53,7 +53,6 @@ class SQLite:
     ret = False
     try:
       sql = "insert into threats (id, src_ip, src_port, dst_ip, dst_port, protocol, reporting, event, rdata, qname) VALUES ('{}', '{}', {}, '{}', {}, '{}', '{}', '{}', '{}', '{}')".format(id_generator(32), src_ip, src_port, dst_ip, dst_port, proto, reporting, event, rdata, qname)
-      print(sql)
       count = self.cursor.execute(sql)
       self.sqliteConnection.commit()
       self.cursor.close()
