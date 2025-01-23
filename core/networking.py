@@ -197,7 +197,8 @@ class PredatorPacketAnalysis:
             if p4 in self.matrix_connections[p1][p2][p3]:
               for content_line in content.split("\n"):
                 self.matrix_connections[p1][p2][p3][p4]['content'].append(content_line)
-              self.matrix_connections[p1][p2][p3][p4]['size_content'] = 0
+              if 'size_content' not in self.matrix_connections[p1][p2][p3][p4]:
+                self.matrix_connections[p1][p2][p3][p4]['size_content'] = 0
               for content_line in self.matrix_connections[p1][p2][p3][p4]['content']:
                 self.matrix_connections[p1][p2][p3][p4]['size_content'] += len(content_line)
     except Exception as e:
