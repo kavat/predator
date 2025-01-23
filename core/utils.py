@@ -167,26 +167,6 @@ def print_connection_content(predator_packet_analysis, init_conn_ip, init_conn_p
   except Exception as e:
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("Error printing session {} {} {}:{} -> {}:{} = {}".format(label, flags, init_conn_ip, init_conn_port, endpoint_conn_ip, endpoint_conn_port, e), exc_info=True)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("print_connection_content() BOOM!!!")
-  try:
-    if endpoint_conn_ip in matrix_connections:
-      if endpoint_conn_port in matrix_connections[endpoint_conn_ip]:
-        if init_conn_ip in matrix_connections[endpoint_conn_ip][endpoint_conn_port]:
-          if init_conn_port in matrix_connections[endpoint_conn_ip][endpoint_conn_port][init_conn_ip]:
-            for riga in matrix_connections[endpoint_conn_ip][endpoint_conn_port][init_conn_ip][init_conn_port]['content']:
-              session_id = matrix_connections[endpoint_conn_ip][endpoint_conn_port][init_conn_ip][init_conn_port]['id_connection']
-              if riga.strip() != "":
-                riga_utf8 = ""
-                try:
-                  riga_utf8 = riga.strip().encode("utf-8")
-                except:
-                  pass
-                if riga_utf8 != "":
-                  config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().info("{} after {} => {}:{} -> {}:{} [{}] = {}".format(label, flags, endpoint_conn_ip, endpoint_conn_port, init_conn_ip, init_conn_port, session_id, riga_utf8))
-                  if config.SEND_TO_SYSLOG == True:
-                    syslog.syslog("LOG=PREDATOR_L7 SESSION_ID={} CONTENT={}".format(session_id, riga_utf8))
-  except Exception as e:
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("Error printing session {} {} {}:{} -> {}:{} = {}".format(label, flags, endpoint_conn_ip, endpoint_conn_port, init_conn_ip, init_conn_port, e), exc_info=True)
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("print_connection_content() BOOM!!!")
 
 def check_connection_content(predator_packet_analysis, init_conn_ip, init_conn_port, endpoint_conn_ip, endpoint_conn_port, label, flags):
   matrix_connections = predator_packet_analysis.get_matrix_connections()

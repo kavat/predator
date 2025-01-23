@@ -143,36 +143,39 @@ class PredatorPacketAnalysis:
     return self.matrix_connections
 
   def init_matrix_connection(self, p1, p2, p3, p4, label, flags):
-    session_id = id_generator(30)
+    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P1 {} P2 {} P3 {} P4 {}".format(p1, p2, p3, p4))
+    try:
+      session_id = self.matrix_connections[p1][p2][p3][p4]['id_connection']
+      content = self.matrix_connections[p1][p2][p3][p4]['content']
+      size_content = self.matrix_connections[p1][p2][p3][p4]['size_content']
+    except:
+      try:
+        session_id = self.matrix_connections[p3][p4][p1][p2]['id_connection']
+        content = self.matrix_connections[p3][p4][p1][p2]['content']
+        size_content = self.matrix_connections[p3][p4][p1][p2]['size_content']
+      except:
+        session_id = id_generator(30)
+        size_content = 0
+        content = []
     try:
       if p1 not in self.matrix_connections:
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P1 {} non presente sopra".format(p1))
         self.matrix_connections[p1] = {}
       if p2 not in self.matrix_connections[p1]:
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P2 {} non presente sopra".format(p2))
         self.matrix_connections[p1][p2] = {}
       if p3 not in self.matrix_connections[p1][p2]:
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P3 {} non presente sopra".format(p3))
         self.matrix_connections[p1][p2][p3] = {}
       if p4 not in self.matrix_connections[p1][p2][p3]:
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P4 {} non presente sopra".format(p4))
         self.matrix_connections[p1][p2][p3][p4] = {}
-        self.matrix_connections[p1][p2][p3][p4]['content'] = []
-        self.matrix_connections[p1][p2][p3][p4]['size_content'] = 0
+        self.matrix_connections[p1][p2][p3][p4]['content'] = content
+        self.matrix_connections[p1][p2][p3][p4]['size_content'] = size_content
         self.matrix_connections[p1][p2][p3][p4]['id_connection'] = session_id
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("Created session {} {} for {}:{}:{}:{} [{}]".format(label, flags, p1, p2, p3, p4, session_id))
     except Exception as e:
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("{} received, error creating session {} for {}:{}:{}:{}".format(label, flags, p1, p2, p3, p4))
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("init_matrix_connection() BOOM!!!")
-    try:
-      if p4 not in self.matrix_connections:
-        self.matrix_connections[p4] = {}
-      if p3 not in self.matrix_connections[p4]:
-        self.matrix_connections[p4][p3] = {}
-      if p2 not in self.matrix_connections[p4][p3]:
-        self.matrix_connections[p4][p3][p3] = {}
-      if p1 not in self.matrix_connections[p4][p3][p2]:
-        self.matrix_connections[p4][p3][p2][p1] = {}
-        self.matrix_connections[p4][p3][p2][p1]['content'] = []
-        self.matrix_connections[p4][p3][p2][p1]['size_content'] = 0
-        self.matrix_connections[p4][p3][p2][p1]['id_connection'] = session_id
-    except Exception as e:
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("{} received, error creating session {} for {}:{}:{}:{}".format(label, flags, p4, p3, p2, p1))
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("init_matrix_connection() BOOM!!!")
 
   def end_matrix_connection(self, p1, p2, p3, p4, label, flags):
