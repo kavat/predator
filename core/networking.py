@@ -17,7 +17,8 @@ from core.utils import (
   get_connection_content_size,
   get_connection_content_session_id,
   is_ip_checkable,
-  is_malicious_host
+  is_malicious_host,
+  check_tcp_conn
 )
 from core.common_utils import (
   parse_json, 
@@ -377,12 +378,3 @@ def sniff(interface, str_filter):
     time.sleep(config.SLEEP_THREAD_RESTART)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_SNIFFERS"].get_logger().critical("Riavvio thread")
     sniff(interface, str_filter)
-
-def check_tcp_conn(host, port):
-  s =  socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  result = s.connect_ex((host, port))
-  s.close()
-  if result:
-    return False
-  else:
-    return True

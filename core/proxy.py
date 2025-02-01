@@ -29,7 +29,7 @@ from http.client import HTTPMessage
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from subprocess import PIPE, Popen
-from core.utils import id_generator, inspect_packet_content
+from core.utils import id_generator, inspect_packet_content, check_tcp_conn
 from base64 import b64encode
 from hashlib import sha1
 from io import StringIO, BytesIO

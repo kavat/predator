@@ -1,6 +1,5 @@
 from flask import Flask, request, render_template
-from core.utils import parse_json
-from core.networking import check_tcp_conn
+from core.utils import parse_json, check_tcp_conn
 from core.library import Library
 from subprocess import PIPE, Popen
 from glob import glob

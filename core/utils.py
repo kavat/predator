@@ -287,3 +287,12 @@ def is_malicious_host(host):
   if Library().client("blacklist_fqdn|{}".format(host)) != "no" or static_fqdn_checks([host]):
     return True
   return False
+
+def check_tcp_conn(host, port):
+  s =  socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  result = s.connect_ex((host, port))
+  s.close()
+  if result:
+    return False
+  else:
+    return True
