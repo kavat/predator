@@ -32,11 +32,12 @@ print("[✅] Transazione creata!")
 
 modsecurity.msc_process_uri(transaction, "http://example.com/login", "POST", "HTTP/1.1")
 
-modsecurity.msc_add_request_header_py(transaction, "Host", "<script>example.com")
+modsecurity.msc_add_request_header_py(transaction, "Host", "example.com")
 modsecurity.msc_add_request_header_py(transaction, "Content-Type", "application/x-www-form-urlencoded")
 modsecurity.msc_process_request_headers(transaction)
 
-payload = "<script>alert</script>username=admin&password=123456"
+#payload = "<script>alert</script>username=admin&password=123456"
+payload = "script"
 modsecurity.msc_append_request_body_py(transaction, payload, len(payload))
 modsecurity.msc_process_request_body(transaction)
 

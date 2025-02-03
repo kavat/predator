@@ -324,18 +324,26 @@ class HttpProxy(BaseHTTPRequestHandler):
       if config.DUMMY:
         self.duplicate_packet(self.command, path, req_body, dict(req.headers), res.status, res_body, dict(res.headers), netloc, origin, self.tls.conns[origin])
 
-    except Exception as e:
-      if type(e).__name__ != "socket.timeout" and type(e).__name__ != "timeout" and type(e).__name__ != "OSError" and type(e).__name__ != "BrokenPipeError":
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().critical("{} - Exception through {}: {}".format(self.id_thread, netloc, e), exc_info=True)
+    except (ssl.SSLEOFError, socket.timeout, timeout, OSError, BrokenPipeError) as e1:
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().critical("{} - Exception through {}: {}".format(self.id_thread, netloc, e1)) 
+      if origin in self.tls_conns:
+        del self.tls_conns[origin]
+      self.wfile.write(e1.encode())
+      self.send_error(502)
+    except Exception as e2:
+      #if type(e).__name__ != "socket.timeout" and type(e).__name__ != "timeout" and type(e).__name__ != "OSError" and type(e).__name__ != "BrokenPipeError":
+      #  config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().critical("{} - Exception through {}: {}".format(self.id_thread, netloc, e), exc_info=True)
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().critical("{} - Exception through {}: {}".format(self.id_thread, netloc, e2), exc_info=True)
       if config.DUMMY:
         self.duplicate_packet(self.command, path, req_body, dict(req.headers), 200, "Richiesta bloccata", {}, netloc, origin, self.tls.conns[origin])
       if origin in self.tls.conns:
         del self.tls.conns[origin]
-      if type(e).__name__ != "SSLEOFError":
-        self.send_error(502)
+      #if type(e).__name__ != "SSLEOFError":
+      #  self.send_error(502)
+      self.send_error(502)
     except ConnectionRefusedError:
-        self.wfile.write(b'Connection error')
-        self.send_error(402)
+      self.wfile.write(b'Connection error')
+      self.send_error(402)
 
     try:
       # chiudo la connessione per evitare il loading infinito della pagina

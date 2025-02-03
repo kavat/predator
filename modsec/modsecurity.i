@@ -25,24 +25,33 @@ int msc_append_request_body_py(Transaction *transaction, const char *body, int s
   return msc_append_request_body(transaction, u_body, st_size);
 }
 
-int msc_intervention_py(Transaction *transaction) {
+typedef struct {
+  int status;
+  char *log;
+} intervention_result;
+
+intervention_result msc_intervention_py(Transaction *transaction) {
   ModSecurityIntervention intervention;
   memset(&intervention, 0, sizeof(ModSecurityIntervention));
-  if (msc_intervention(transaction, &intervention) && intervention.status == 403) {
-    printf("🔴 ATTACCO RILEVATO! ModSecurity ha bloccato la richiesta.\n");
-    if (intervention.log) {
-      printf("📌 Regola attivata: %s\n", intervention.log);
-    }
-  } else {
-    printf("🟢 Nessuna minaccia rilevata.\n");
-  }
+  msc_intervention(transaction, &intervention);
   msc_transaction_cleanup(transaction);
-  return intervention.status;
+  intervention_result ir;
+  memset(&ir, 0, sizeof(intervention_result));  
+  ir.status = intervention.status;
+  ir.log = intervention.log;
+  return ir;
 }
 %}
 
+%typemap(out) intervention_result {
+    PyObject *obj = Py_BuildValue("{s:i, s:s}", 
+                                  "status", $1.status, 
+                                  "log", $1.log ? $1.log : "");
+    $result = obj;
+}
+
 int msc_rules_add_file_py(RulesSet *rules, const char *file);
-int msc_intervention_py(Transaction *transaction);
+intervention_result msc_intervention_py(Transaction *transaction);
 int msc_add_request_header_py(Transaction *transaction, const char *key, const char *value);
 int msc_append_request_body_py(Transaction *transaction, const char *body, size_t size);
 
