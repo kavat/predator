@@ -81,6 +81,16 @@ class PredatorApi:
       return {"func": data['func'], "msg": f"Set level {logger_level} for {logger_name}"}
     return {"func": data['func'], "msg": "Invalid logger name or level"}
 
+  def _handle_get_session_by_id(self, data):
+    session_id = data.get("session_id")
+    if session_id:
+      return {"func": data['func'], "msg": self.library.client(f"get_session_by_id|{session_id}")}
+    else:
+      return {"func": data['func'], "msg": f"session_id missed"}
+
+  def _handle_get_sessions(self, data):
+    return {"func": data['func'], "msg": self.library.client(f"get_sessions|")}
+
   def handle_post_actions(self, data):
     func = data.get("func")
     if not func:

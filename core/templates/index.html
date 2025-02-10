@@ -22,10 +22,13 @@
         if(api == "threats") {
           url_to_call = url_to_call + "&ip=" + encodeURIComponent(document.getElementById('txt_3').value);
         }
+        if(api == "get_session_by_id") {
+          url_to_call = url_to_call + "&session_id=" + encodeURIComponent(document.getElementById('txt_4').value);
+        }
         xmlHttp.open("GET", url_to_call, false); // false for synchronous request
         xmlHttp.send(null);
         var risp = JSON.parse(xmlHttp.responseText);
-        if(api == "conf" || api == "createca" || api == "threats") {
+        if(api == "conf" || api == "createca" || api == "threats" || api == "get_sessions" || api == "get_session_by_id") {
           document.getElementById(div_arg).innerHTML = risp["msg"];
         }
         else {
@@ -77,12 +80,24 @@
       </tr>
       <tr>
         <td>Threats</td>
-        <td>Get threats raised (all or filtered by IP)</td>
+        <td>Get threats (all or filtered by IP)</td>
         <td><input type="text" value="" id="txt_3"></td>
         <td><input onclick="exec_api('threats', 'output');" type="button" value="RUN"></td>
       </tr>
+      <tr>
+        <td>L7 sessions list</td>
+        <td>Get L7 sessions opened</td>
+        <td> - </td>
+        <td><input onclick="exec_api('get_sessions', 'output');" type="button" value="RUN"></td>
+      </tr>
+      <tr>
+        <td>L7 session content</td>
+        <td>Get L7 session opened filtered by session_id</td>
+        <td><input type="text" value="" id="txt_4"></td>
+        <td><input onclick="exec_api('get_session_by_id', 'output');" type="button" value="RUN"></td>
+      </tr>
     </table>
-    <br><br><br><br><br><br><br><br><br>
+    <br><br><br><br><br>
     <div id='output'></div>
   </body>
 </html>

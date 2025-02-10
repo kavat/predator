@@ -9,10 +9,17 @@ import copy
 import ipaddress
 import syslog
 import hashlib
+import base64
 
 from hashlib import md5
 from glob import glob
 from datetime import datetime
+
+def string2b64(string):
+  return base64.b64encode(string.encode()).decode('utf-8')
+
+def b642string(string):
+  return base64.b64decode(string.encode()).decode('ascii')
 
 def get_string_md5(string):
   return hashlib.md5(string.encode()).hexdigest() 
@@ -47,3 +54,7 @@ def append_json_threat(thread_name, data):
   with open("{}/{}_{}.json".format(config.PATH_LOCAL_JSON, thread_name, id_log), 'w') as f:
     data["@timestamp"] = datetime.utcnow().isoformat()
     json.dump({'_id': id_log, '_source': data}, f)
+
+def get_curdatetime():
+  now = datetime.now()
+  return now.strftime("%Y-%m-%d %H:%M:%S")

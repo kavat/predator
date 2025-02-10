@@ -10,7 +10,8 @@ from typing import Dict, List, Union
 from core.common_utils import (
   id_generator,
   parse_json,
-  parse_json_array
+  parse_json_array,
+  b642string
 )
 
 class Library:
@@ -32,6 +33,9 @@ class Library:
 
     self.threats: Dict[str, List[Dict]] = {}
     self.threats_lock = Lock()
+
+    self.session_content: Dict[str, Dict] = {}
+    self.session_content_lock = Lock()
 
     self.geoloc_db = self._initialize_geolocation_db()
 
@@ -283,6 +287,33 @@ class Library:
   def _handle_json_reload(self, message: str) -> str:
     self.init_rules()
     return "ack"
+
+  def _handle_add_content_session(self, message: str) -> str:
+    src = message.split(",")[0]
+    dst = message.split(",")[1]
+    content_session_id = message.split(",")[2]
+    content_session = message.split(",")[3]
+    with self.session_content_lock:
+      if content_session_id not in self.session_content:
+        self.session_content[content_session_id] = {
+          'content': [],
+          'chiave1': "{}_{}".format(src, dst),
+          'chiave2': "{}_{}".format(dst, src)
+        }
+      self.session_content[content_session_id]['content'].append(content_session)
+    return "ack"
+
+  def _handle_get_sessions(self, message: str) -> str:
+    r = []
+    for session_id in self.session_content:
+      r.append(session_id)
+    return "L7 sessions list:<br>{}".format(','.join(r)) if len(r) > 0 else "L7 sessions list:<br>no_data"
+
+  def _handle_get_session_by_id(self, message: str) -> str:
+    if message in self.session_content:
+      apply_function = lambda arr, func: list(map(func, arr))
+      return "L7 session {} content:<br>{}".format(message, '<br>'.join(apply_function(self.session_content[message], lambda x: b642string(x))))
+    return "L7 session {} content:<br>no_data".format(message)
 
   def client(self, message: str, json_r: bool = False) -> Union[str, dict]:
     client_socket = f"{config.SOCKET_LIBRARY_BASE_CLIENT}/{id_generator(10)}.sock"
