@@ -216,7 +216,7 @@ class PredatorPacketAnalysis:
             if p4 in self.matrix_connections[p1][p2][p3]:
               for content_line in content.split("\n"):
                 self.matrix_connections[p1][p2][p3][p4]['content'].append(content_line)
-                self.add_content_session(self.matrix_connections[p1][p2][p3][p4]['id_connection'], content_line)
+                self.add_content_session(p1, p2, p3, p4, self.matrix_connections[p1][p2][p3][p4]['id_connection'], content_line)
               if 'size_content' not in self.matrix_connections[p1][p2][p3][p4]:
                 self.matrix_connections[p1][p2][p3][p4]['size_content'] = 0
               for content_line in self.matrix_connections[p1][p2][p3][p4]['content']:
@@ -297,9 +297,15 @@ class PredatorPacketAnalysis:
         try:
           rdata = dnsrr.rdata.decode("utf-8")
         except (UnicodeDecodeError, AttributeError):
-          rdata = dnsrr.rdata or ""
+          try:
+            rdata = dnsrr.rdata
+          except:
+            rdata = ""
 
-        if rdata:
+        if isinstance(rdata, list):
+          for rdata_ in rdata:
+            rdata_loop.append(rdata_)
+        else:
           rdata_loop.append(rdata)
 
     library = Library()

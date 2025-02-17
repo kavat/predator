@@ -112,9 +112,9 @@ def static_fqdn_checks(fqdns):
         qname = fqdn[:-1]
       else:
         qname = fqdn
-    for malicious_suffix in config.MALICIOUS_SUFFIXES:
-      if qname.endswith(malicious_suffix):
-        return True
+      for malicious_suffix in config.MALICIOUS_SUFFIXES:
+        if qname.endswith(malicious_suffix):
+          return True
   return False
 
 def inspect_packet_content(packet_content):
@@ -275,8 +275,8 @@ def check_if_ip_is_in_cidrs(ip):
   return False
 
 def is_ip_checkable(ip, port, proto):
-  if(Library().client("blacklist_ip|{}".format(ip)) != "no" and Library().client("whitelist|{}".format(ip))):       
-    if(ipaddress.ip_address(ip).is_private == False and check_if_ip_is_in_cidrs(ip) == False):
+  if(ipaddress.ip_address(ip).is_private == False and check_if_ip_is_in_cidrs(ip) == False):
+    if(Library().client("blacklist_ip|{}".format(ip)) != "no" and Library().client("whitelist|{}".format(ip))):
       if net_whitelisted(ip, proto, str(port), "") == False:
         return True
   return False
