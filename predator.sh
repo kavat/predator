@@ -98,14 +98,14 @@ status() {
   echo "Predator process status: "
   ps xa | grep predator.py | grep -v grep
   echo -en "\tPredator management socket status: "
-  test_port=$(ss -antp | grep ":${MANAGEMENT_PORT}")
+  test_port=$(ss -antl | grep ":${MANAGEMENT_PORT}")
   if [ "${test_port}" != "" ]; then
     echo "up"
   else
     echo "down"	    
   fi
   echo -en "\tPredator proxy socket status: "
-  test_port=$(ss -antp | grep ":${PROXY_PORT}")
+  test_port=$(ss -antl | grep ":${PROXY_PORT}")
   if [ "${test_port}" != "" ]; then
     echo "up"
   else
@@ -117,7 +117,7 @@ status() {
     fi
   fi
   echo -en "\tPredator dummy socket status: "
-  test_port=$(ss -antp | grep ":${DUMMY_PORT}")
+  test_port=$(ss -antl | grep ":${DUMMY_PORT}")
   if [ "${test_port}" != "" ]; then
     echo "up"
   else
@@ -145,19 +145,19 @@ start() {
       exit 1
     fi
     echo "Check port ${MANAGEMENT_PORT}/TCP already opened.."
-    check_porta=$(ss -anpt | grep ":${MANAGEMENT_PORT}")
+    check_porta=$(ss -antl | grep ":${MANAGEMENT_PORT}")
     if [ "${check_porta}" != "" ]; then
       echo "PID not found but port ${MANAGEMENT_PORT} is already opened"
       exit 1
     fi
     echo "Check port ${PROXY_PORT}/TCP already opened.."
-    check_porta=$(ss -anpt | grep ":${PROXY_PORT}")
+    check_porta=$(ss -antl | grep ":${PROXY_PORT}")
     if [ "${check_porta}" != "" ]; then
       echo "PID not found but port ${PROXY_PORT} is already opened"
       exit 1
     fi
     echo "Check port ${DUMMY_PORT}/TCP already opened.."
-    check_porta=$(ss -anpt | grep ":${DUMMY_PORT}")
+    check_porta=$(ss -antl | grep ":${DUMMY_PORT}")
     if [ "${check_porta}" != "" ]; then
       echo "PID not found but port ${DUMMY_PORT} is already opened"
       exit 1
