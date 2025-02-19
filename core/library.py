@@ -289,6 +289,13 @@ class Library:
     self.init_rules()
     return "ack"
 
+  def _handle_delete_session(self, message: str) -> str:
+    id_connection =message.split(",")[0]
+    with self.session_content_lock:
+      if id_connection in self.session_content:
+        del self.session_content[id_connection]
+    return "ack"
+
   def _handle_add_content_session(self, message: str) -> str:
     src = message.split(",")[0]
     dst = message.split(",")[1]
