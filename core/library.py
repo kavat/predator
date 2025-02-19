@@ -289,7 +289,7 @@ class Library:
     self.init_rules()
     return "ack"
 
-  def _handle_delete_session(self, message: str) -> str:
+  def _handle_delete_session_by_id(self, message: str) -> str:
     id_connection =message.split(",")[0]
     with self.session_content_lock:
       if id_connection in self.session_content:
@@ -322,7 +322,7 @@ class Library:
     if message in self.session_content:
       apply_function = lambda arr, func: list(map(func, arr))
       print(self.session_content[message])
-      return "L7 session {} content:<br>{}".format(message, '<br>'.join(apply_function(self.session_content[message]['content'], lambda x: b642string(x))))
+      return "L7 session {} <br>first_packet: {}<br>flow: {}<br>content:<br>{}".format(message, self.session_content[message]['first_packet'], self.session_content[message]['chiave1'], '<br>'.join(apply_function(self.session_content[message]['content'], lambda x: b642string(x))))
     return "L7 session {} content:<br>no_data".format(message)
 
   def client(self, message: str, json_r: bool = False) -> Union[str, dict]:

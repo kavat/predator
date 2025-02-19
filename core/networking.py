@@ -210,7 +210,7 @@ class PredatorPacketAnalysis:
               if p4 in self.matrix_connections[p1][p2][p3]:
                 if 'id_connection' in self.matrix_connections[p1][p2][p3][p4]:
                   id_connection = self.matrix_connections[p1][p2][p3][p4]['id_connection']
-                  Library().client("delete_session|{}".format(id_connection))
+                  Library().client("delete_session_by_id|{}".format(id_connection))
                 else:
                   config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().error("Connection {}:{} -> {}:{} without id_connection".format(p1, p2, p3, p4))
                 with self.matrix_connections_lock:
