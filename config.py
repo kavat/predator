@@ -83,11 +83,11 @@ MALICIOUS_SUFFIXES = [".onion"]
 
 CIDRS = ['192.168.1.0/24']
 NICS_TO_SNIFF = ["vmbr0"]
-MANAGEMENT_HOST = "192.168.1.239"
+MANAGEMENT_HOST = "0.0.0.0"
 MANAGEMENT_PORT = 10000
 DUMMY_HOST = "127.0.0.1"
 DUMMY_PORT = 9999
-PROXY_HOST = "192.168.1.239"
+PROXY_HOST = "0.0.0.0"
 PROXY_PORT = 7777
 REVERSE_PROXY_HOSTS = [{"host": "0.0.0.0", "port": 443, "ssl": True, "upstream": "https://github.com"}, {"host": "0.0.0.0", "port": 8080, "ssl": False, "upstream": "http://security.ubuntu.com/ubuntu"}]
 REVERSE_PROXY_STATIC_JUMP = 0

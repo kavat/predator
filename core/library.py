@@ -11,7 +11,8 @@ from core.common_utils import (
   id_generator,
   parse_json,
   parse_json_array,
-  b642string
+  b642string,
+  get_curdatetime
 )
 
 class Library:
@@ -297,6 +298,7 @@ class Library:
       if content_session_id not in self.session_content:
         self.session_content[content_session_id] = {
           'content': [],
+          'first_packet': get_curdatetime(), 
           'chiave1': "{}_{}".format(src, dst),
           'chiave2': "{}_{}".format(dst, src)
         }
