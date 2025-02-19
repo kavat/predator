@@ -321,7 +321,8 @@ class Library:
   def _handle_get_session_by_id(self, message: str) -> str:
     if message in self.session_content:
       apply_function = lambda arr, func: list(map(func, arr))
-      return "L7 session {} content:<br>{}".format(message, '<br>'.join(apply_function(self.session_content[message], lambda x: b642string(x))))
+      print(self.session_content[message])
+      return "L7 session {} content:<br>{}".format(message, '<br>'.join(apply_function(self.session_content[message]['content'], lambda x: b642string(x))))
     return "L7 session {} content:<br>no_data".format(message)
 
   def client(self, message: str, json_r: bool = False) -> Union[str, dict]:

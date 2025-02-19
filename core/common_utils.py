@@ -19,6 +19,8 @@ def string2b64(string):
   return base64.b64encode(string.encode()).decode('utf-8')
 
 def b642string(string):
+  if string == "":
+    return ""
   return base64.b64decode(string.encode()).decode('ascii')
 
 def get_string_md5(string):

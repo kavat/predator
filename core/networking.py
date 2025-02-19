@@ -156,45 +156,50 @@ class PredatorPacketAnalysis:
     return self.matrix_connections
 
   def init_matrix_connection(self, p1, p2, p3, p4, label, flags):
-    with self.matrix_connections_lock:
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P1 {} P2 {} P3 {} P4 {}".format(p1, p2, p3, p4))
-      try:
+    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P1 {} P2 {} P3 {} P4 {}".format(p1, p2, p3, p4))
+    try:
+      with self.matrix_connections_lock:
         session_id = self.matrix_connections[p1][p2][p3][p4]['id_connection']
         content = self.matrix_connections[p1][p2][p3][p4]['content']
         size_content = self.matrix_connections[p1][p2][p3][p4]['size_content']
         session_datetime = self.matrix_connections[p1][p2][p3][p4]['datetime']
-      except:
-        try:
+    except:
+      try:
+        with self.matrix_connections_lock:
           session_id = self.matrix_connections[p3][p4][p1][p2]['id_connection']
           content = self.matrix_connections[p3][p4][p1][p2]['content']
           size_content = self.matrix_connections[p3][p4][p1][p2]['size_content']
           session_datetime = self.matrix_connections[p3][p4][p1][p2]['datetime']
-        except:
-          session_id = id_generator(30)
-          size_content = 0
-          content = []
-          session_datetime = get_curdatetime()
-      try:
-        if p1 not in self.matrix_connections:
-          config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P1 {} non presente sopra".format(p1))
+      except:
+        session_id = id_generator(30)
+        size_content = 0
+        content = []
+        session_datetime = get_curdatetime()
+    try:
+      if p1 not in self.matrix_connections:
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P1 {} non presente sopra".format(p1))
+        with self.matrix_connections_lock:
           self.matrix_connections[p1] = {}
-        if p2 not in self.matrix_connections[p1]:
-          config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P2 {} non presente sopra".format(p2))
+      if p2 not in self.matrix_connections[p1]:
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P2 {} non presente sopra".format(p2))
+        with self.matrix_connections_lock:
           self.matrix_connections[p1][p2] = {}
-        if p3 not in self.matrix_connections[p1][p2]:
-          config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P3 {} non presente sopra".format(p3))
+      if p3 not in self.matrix_connections[p1][p2]:
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P3 {} non presente sopra".format(p3))
+        with self.matrix_connections_lock:
           self.matrix_connections[p1][p2][p3] = {}
-        if p4 not in self.matrix_connections[p1][p2][p3]:
-          config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P4 {} non presente sopra".format(p4))
+      if p4 not in self.matrix_connections[p1][p2][p3]:
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P4 {} non presente sopra".format(p4))
+        with self.matrix_connections_lock:
           self.matrix_connections[p1][p2][p3][p4] = {}
           self.matrix_connections[p1][p2][p3][p4]['content'] = content
           self.matrix_connections[p1][p2][p3][p4]['size_content'] = size_content
           self.matrix_connections[p1][p2][p3][p4]['id_connection'] = session_id
           self.matrix_connections[p1][p2][p3][p4]['datetime'] = session_datetime
-          config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("Created session {} {} for {}:{}:{}:{} [{}]".format(label, flags, p1, p2, p3, p4, session_id))
-      except Exception as e:
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("{} received, error creating session {} for {}:{}:{}:{}".format(label, flags, p1, p2, p3, p4))
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("init_matrix_connection() BOOM!!!")
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("Created session {} {} for {}:{}:{}:{} [{}]".format(label, flags, p1, p2, p3, p4, session_id))
+    except Exception as e:
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("{} received, error creating session {} for {}:{}:{}:{}".format(label, flags, p1, p2, p3, p4))
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("init_matrix_connection() BOOM!!!")
 
   def end_matrix_connection(self, p1, p2, p3, p4, label, flags):
     with self.matrix_connections_lock:
@@ -208,7 +213,8 @@ class PredatorPacketAnalysis:
                   Library().client("delete_session|{}".format(id_connection))
                 else:
                   config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().error("Connection {}:{} -> {}:{} without id_connection".format(p1, p2, p3, p4))
-                del self.matrix_connections[p1][p2][p3][p4]
+                with self.matrix_connections_lock:
+                  del self.matrix_connections[p1][p2][p3][p4]
       except Exception as e:
         config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("{} received, error ending session {} for {}:{}:{}:{}".format(label, flags, p1, p2, p3, p4))
         config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("end_matrix_connection() BOOM!!!")
@@ -220,12 +226,16 @@ class PredatorPacketAnalysis:
           if p3 in self.matrix_connections[p1][p2]:
             if p4 in self.matrix_connections[p1][p2][p3]:
               for content_line in content.split("\n"):
-                self.matrix_connections[p1][p2][p3][p4]['content'].append(content_line)
-                self.add_content_session(p1, p2, p3, p4, self.matrix_connections[p1][p2][p3][p4]['id_connection'], content_line)
+                with self.matrix_connections_lock:
+                  self.matrix_connections[p1][p2][p3][p4]['content'].append(content_line)
+                with self.matrix_connections_lock:
+                  self.add_content_session(p1, p2, p3, p4, self.matrix_connections[p1][p2][p3][p4]['id_connection'], content_line)
               if 'size_content' not in self.matrix_connections[p1][p2][p3][p4]:
-                self.matrix_connections[p1][p2][p3][p4]['size_content'] = 0
+                with self.matrix_connections_lock:
+                  self.matrix_connections[p1][p2][p3][p4]['size_content'] = 0
               for content_line in self.matrix_connections[p1][p2][p3][p4]['content']:
-                self.matrix_connections[p1][p2][p3][p4]['size_content'] += len(content_line)
+                with self.matrix_connections_lock:
+                  self.matrix_connections[p1][p2][p3][p4]['size_content'] += len(content_line)
     except Exception as e:
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("{} received, error appending session {}:{}:{}:{}".format(label, p1, p2, p3, p4))
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("append_content_matrix_connection() BOOM!!!")
@@ -236,28 +246,28 @@ class PredatorPacketAnalysis:
 
   def tcp_flag_fr(self, packet, flags, ip_check, port_check, ip2, port2, proto, type_flow):
     if "F" in flags or "R" in flags:
-      with self.matrix_connections_lock:
-        print_connection_content(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(type_flow), flags)
-        print_connection_content(self.get_handler(), ip2, port2, ip_check, port_check, "evil_{}".format(type_flow), flags)
-        #self.print_matrix(flags)
+      print_connection_content(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(type_flow), flags)
+      print_connection_content(self.get_handler(), ip2, port2, ip_check, port_check, "evil_{}".format(type_flow), flags)
+      self.end_matrix_connection(ip_check, port_check, ip2, port2, "evil_{}".format(type_flow), flags)
+      self.end_matrix_connection(ip2, port2, ip_check, port_check, "evil_{}".format(type_flow), flags)
+      #self.print_matrix(flags)
 
   def tcp_flag_p(self, packet, flags, ip_check, port_check, ip2, port2, proto, type_flow):
     if 'P' in flags and 'Raw' in packet:
-      with self.matrix_connections_lock:
+      packet_content = ""
+      try:
+        packet_content = packet[Raw].load.decode('latin-1')
+      except Exception as ed:
         packet_content = ""
-        try:
-          packet_content = packet[Raw].load.decode('latin-1')
-        except Exception as ed:
-          packet_content = ""
-          config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("Error decoding payload for evil_{} {} {}:{} -> {}:{} = {}".format(type_flow, flags, ip_check, port_check, ip2, port2, ed))
-        if packet_content != "":
-          self.append_content_matrix_connection(ip_check, port_check, ip2, port2, packet[Raw].load.decode('latin-1'), "evil_{}".format(type_flow))
-          self.append_content_matrix_connection(ip2, port2, ip_check, port_check, packet[Raw].load.decode('latin-1'), "evil_{}".format(type_flow))
-          check_content_packet = inspect_packet_content(packet_content)
-          type_reporting = "static_patterns"
-          if check_content_packet != "":
-            self.add_threat_l7(ip_check, port_check, ip2, port2, proto, flags, "L7", check_content_packet)
-          #self.print_matrix(flags)
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("Error decoding payload for evil_{} {} {}:{} -> {}:{} = {}".format(type_flow, flags, ip_check, port_check, ip2, port2, ed))
+      if packet_content != "":
+        self.append_content_matrix_connection(ip_check, port_check, ip2, port2, packet[Raw].load.decode('latin-1'), "evil_{}".format(type_flow))
+        self.append_content_matrix_connection(ip2, port2, ip_check, port_check, packet[Raw].load.decode('latin-1'), "evil_{}".format(type_flow))
+        check_content_packet = inspect_packet_content(packet_content)
+        type_reporting = "static_patterns"
+        if check_content_packet != "":
+          self.add_threat_l7(ip_check, port_check, ip2, port2, proto, flags, "L7", check_content_packet)
+        #self.print_matrix(flags)
 
   def get_host_from_packet_raw(self, packet):
     try:
