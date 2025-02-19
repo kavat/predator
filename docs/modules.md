@@ -45,7 +45,7 @@ A simple interface is provided as management console and it is available at `htt
 Performs SSL termination and traffic inspection based on rules.
 
 ### Default Settings
-Controlled via `PROXY` setting in `config.py` (default: `True`):
+Controlled via `PROXY` setting in `config.py` (default: `False`):
   ```python
   PROXY_HOST = "127.0.0.1"
   PROXY_PORT = 7777
@@ -62,3 +62,17 @@ Controlled via `DUMMY` setting in `config.py` (default: `False`):
   DUMMY_PORT = 9999
   DUMMY = False
   ```
+
+## Reverse Proxy
+Performs ingress traffic inspection before redirecting to upstream.
+
+### Default Settings
+Controlled via `REVERSE_PROXY` setting in `config.py` (default: `False`):
+  ```python
+  REVERSE_PROXY_HOSTS = [
+    {"host": "0.0.0.0", "port": 443, "ssl": True, "upstream": "https://github.com"},
+    {"host": "0.0.0.0", "port": 8080, "ssl": False, "upstream": "http://security.ubuntu.com/ubuntu"}
+  ]
+  REVERSE_PROXY = True
+  ```
+

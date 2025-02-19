@@ -4,10 +4,12 @@ from core.networking import sniff
 from core.library import Library, start_library_server
 from core.api import start_api
 from core.proxy import start_proxy
+from core.reverse_proxy import start_reverse_proxies
 from core.dummy import start_dummy
 
 import time
 import config
+import os
 
 def main():
   try:
@@ -28,8 +30,18 @@ def main():
 
     if config.DUMMY == True:
       config.THREADS["dummy"] = PredatorThread("dummy", start_dummy, (config.DUMMY_HOST, config.DUMMY_PORT,), True)
+
     if config.PROXY == True:
-      config.THREADS["proxy"] = PredatorThread("proxy", start_proxy, (config.PROXY_HOST, config.PROXY_PORT, config.PROXY_PROTOCOL,), True)
+      if (os.path.isdir(config.CERT_DIR) and os.path.isfile(config.CA_KEY) and os.path.isfile(config.CA_CRT) and os.path.isfile(config.CERT_KEY)):
+        config.THREADS["proxy"] = PredatorPool("proxy", start_proxy, (config.PROXY_HOST, config.PROXY_PORT, config.PROXY_PROTOCOL,), True)
+      else:
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().warning("Reverse proxy cannot be execute due to certificate authority missed")
+
+    if config.REVERSE_PROXY == True:
+      if (os.path.isdir(config.CERT_DIR) and os.path.isfile(config.REVERSE_PROXY_SSL_CERT) and os.path.isfile(config.REVERSE_PROXY_SSL_KEY)):
+        start_reverse_proxies(config.REVERSE_PROXY_HOSTS)
+      else:
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().warning("Reverse proxy cannot be execute due to certificate missed")
 
     while True:
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().info("Living Predator..") 

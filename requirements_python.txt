@@ -8,3 +8,6 @@ elasticsearch
 requests
 pysqlite3
 quart
+aiohttp
+asyncio
+hypercorn

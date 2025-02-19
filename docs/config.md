@@ -19,6 +19,7 @@ DUMMY_HOST = "127.0.0.1"                      # DUMMY host
 DUMMY_PORT = 9999                             # DUMMY port
 PROXY_HOST = "192.168.1.239"                  # Proxy host
 PROXY_PORT = 7777                             # Proxy port
+REVERSE_PROXY_HOSTS = []                      # Reverse proxy hosts list (keys are host as IP, port as intenger, ssl as boolean and upstream as string)
 ES_URL = "https://127.0.0.1:9200"             # Elasticsearch URL for threat raised
 ES_AUTH = True                                # Elasticsearch authentication
 ES_USERNAME = "user"                          # Elasticsearch authentication username
@@ -28,9 +29,19 @@ ES_INDEX_PREFIX = "predator"                  # Elasticsearch index prefix (last
 DASHBOARD_URL = "http://127.0.0.1:8888"       # Dashboard internal URL (Defaul bind on localhost and reachable through Proxy at LINK_DASHBOARD)
 IDS = True                                    # Module L4 enabling
 PROXY = True                                  # Module L7 enabling (Proxy)
+REVERSE_PROXY = True                          # Module Reverse Proxy enabling
 API = True                                    # Module API enabling
 DUMMY = False                                 # Module DUMMY enabling
 SEND_TO_SYSLOG = False                        # Local syslog forward enabling
 SEND_TO_ES = False                            # Elasticsearch forward enabling
 SEND_TO_SQLITE = False                        # SQLite forward enabling
+```
+
+Details:
+
+```python
+REVERSE_PROXY_HOSTS = [
+  {"host": "0.0.0.0", "port": 443, "ssl": True, "upstream": "https://github.com"},
+  {"host": "0.0.0.0", "port": 8080, "ssl": False, "upstream": "http://security.ubuntu.com/ubuntu"}
+]
 ```

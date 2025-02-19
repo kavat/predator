@@ -27,11 +27,28 @@ class PredatorApi:
     ]
     return {"func": data['func'], "msg": "".join(conf_message)}
 
+  def _handle_createcert(self, data):
+    for file_path in [config.REVERSE_PROXY_SSL_CERT, config.REVERSE_PROXY_SSL_KEY]: 
+      if os.path.exists(file_path):
+        os.remove(file_path)
+    
+    os.makedirs(config.CERT_DIR, exist_ok=True)
+    commands = [
+      ["openssl", "req", "-x509", "-newkey", "rsa:4096", "-keyout", config.REVERSE_PROXY_SSL_KEY, "-out", config.REVERSE_PROXY_SSL_CERT, "-sha256", "-days", "3650", "-nodes", "-subj", "/C=IT/ST=Italy/L=Sesto Fiorentino/O=Predator/OU=Proxy/CN=proxy"]
+    ]
+    for cmd in commands:
+      Popen(cmd).communicate()
+
+    if os.path.exists(config.REVERSE_PROXY_SSL_CERT):
+      return {"func": data['func'], "msg": f"Reverse Proxy ertificate created."}
+    return {"func": data['func'], "msg": "Error Reverse Proxy creating certificate."}
+
   def _handle_createca(self, data):
     for file_path in [config.CA_CRT, config.CA_KEY]:
       if os.path.exists(file_path):
         os.remove(file_path)
 
+    os.makedirs(config.CERT_DIR, exist_ok=True)
     commands = [
       ["openssl", "genrsa", "-out", config.CA_KEY, str(config.CA_KEY_SIZE)],
       ["openssl", "req", "-new", "-x509", "-days", "3650", "-key", config.CA_KEY, "-sha256", "-out", config.CA_CRT, "-subj", "/CN=Predator CA"],
@@ -40,7 +57,6 @@ class PredatorApi:
     for cmd in commands:
       Popen(cmd).communicate()
 
-    os.makedirs(config.CERT_DIR, exist_ok=True)
     for old_cert in glob(os.path.join(config.CERT_DIR, "*.pem")):
       os.remove(old_cert)
 
@@ -49,7 +65,7 @@ class PredatorApi:
     return {"func": data['func'], "msg": "Error creating certification authority."}
 
   def _handle_help(self, data):
-    return {"func": data['func'], "msg": "threats|createca|loadjson|status|setloglevel|conf|check_ip"}
+    return {"func": data['func'], "msg": "threats|createca|createcert|loadjson|status|setloglevel|conf|check_ip"}
 
   def _handle_threats(self, data):
     ip = data.get("ip", "")

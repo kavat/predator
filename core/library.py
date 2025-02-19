@@ -307,7 +307,7 @@ class Library:
     r = []
     for session_id in self.session_content:
       r.append(session_id)
-    return "L7 sessions list:<br>{}".format(','.join(r)) if len(r) > 0 else "L7 sessions list:<br>no_data"
+    return "L7 sessions list:<br>{}".format('<br>'.join(r)) if len(r) > 0 else "L7 sessions list:<br>no_data"
 
   def _handle_get_session_by_id(self, message: str) -> str:
     if message in self.session_content:

@@ -54,10 +54,10 @@ def start_dummy(host, port, server_class=HTTPServer, handler_class=S):
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().critical(e, exc_info=True)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_DUMMY"].get_logger().critical(e, exc_info=True)
     if check_tcp_conn(host, port) == False:
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_DUMMY"].get_logger().critical("Tra " + str(config.SLEEP_THREAD_RESTART) + " riavvio il thread")
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_DUMMY"].get_logger().critical("Wait " + str(config.SLEEP_THREAD_RESTART) + " to thread restart")
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("dummy() BOOM!!!")
       time.sleep(config.SLEEP_THREAD_SOCKET_RESTART)
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_DUMMY"].get_logger().critical("Riavvio thread")
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_DUMMY"].get_logger().critical("Restarting thread")
       start_dummy(host, port)
     else:
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_DUMMY"].get_logger().info("Server raggiungibile, riavvio del thread non necessario")
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_DUMMY"].get_logger().info("Server reachable, restart not needed")

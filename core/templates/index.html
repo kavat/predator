@@ -28,7 +28,7 @@
         xmlHttp.open("GET", url_to_call, false); // false for synchronous request
         xmlHttp.send(null);
         var risp = JSON.parse(xmlHttp.responseText);
-        if(api == "conf" || api == "createca" || api == "threats" || api == "get_sessions" || api == "get_session_by_id") {
+        if(api == "conf" || api == "createca" || api == "createcert" || api == "threats" || api == "get_sessions" || api == "get_session_by_id") {
           document.getElementById(div_arg).innerHTML = risp["msg"];
         }
         else {
@@ -55,10 +55,16 @@
         <td> - </td>
         <td><input onclick="exec_api('conf', 'output');" type="button" value="RUN"></td>
       <tr>
-        <td>create CA</td>
+        <td>create Proxy CA</td>
         <td>Create Certification Authority in order to intercept SSL traffic at layer 7 through Predator as proxy</td>
         <td> - </td>
         <td><input onclick="exec_api('createca', 'output');" type="button" value="RUN"></td>
+      </tr>
+      <tr>
+        <td>create Reverse Proxy certificate</td>
+        <td>Create certificate to expose in front of layer 7 reverse proxy</td>
+        <td> - </td>
+        <td><input onclick="exec_api('createcert', 'output');" type="button" value="RUN"></td>
       </tr>
       <tr>
         <td>loadjson</td>
