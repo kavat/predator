@@ -9,11 +9,14 @@ import asyncio
 import config
 import time
 import re
+import logging
 
 from quart import Quart, request, websocket, Response
 from urllib.parse import unquote
 from core.utils import check_tcp_conn
 from multiprocessing import Process
+
+sni_map = {}
 
 def analyze_paylod_statically(payloads):
   to_analyze_json = []
@@ -125,19 +128,35 @@ def create_path_context(upstream):
 
   return rp
 
+def servername_callback(ssl_sock, servername, ssl_context):
+  if servername in sni_map:
+    certfile, keyfile = certs[servername]
+    ssl_context.load_cert_chain(certfile, keyfile)
+
 def start_reverse_proxies(proxies):
   for proxy in proxies:
     Process(target=start_reverse_proxy, args=(proxy["host"], proxy["port"], proxy["ssl"], proxy["upstream"],)).start()
 
-def start_reverse_proxy(host, port, ssl, upstream):
+def start_reverse_proxy(host, port, ssl_arg, upstream):
   try:
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_REVERSE_PROXY"].get_logger().info("Starting Reverse Proxy {}:{} towards {}..".format(host, port, upstream))
     config_rp = hypercorn.Config()
 
     config_rp.bind = "{}:{}".format(host, port)
-    if ssl == True:
-      config_rp.certfile = config.REVERSE_PROXY_SSL_CERT
+    if ssl_arg != False:
+      #ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+      #for ssl_conf in ssl_arg:
+      #  ssl_context_s = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+      #  ssl_context_s.load_cert_chain(ssl_conf["cert"], ssl_conf["key"])
+      #  sni_map[ssl_conf["domain"]] = ssl_context_s
+
+      #ssl_context.set_servername_callback(servername_callback)
+      config_rp.certfile = config.REVERSE_PROXY_SSL_CERT 
       config_rp.keyfile = config.REVERSE_PROXY_SSL_KEY
+      #config_rp.ssl = ssl_context 
+
+      config_rp.loglevel = "DEBUG"  # 🔥 Log dettagliati
+      logging.basicConfig(level=logging.DEBUG)
 
     asyncio.run(hypercorn.asyncio.serve(create_path_context(upstream), config_rp))
   except Exception as e:
@@ -148,6 +167,6 @@ def start_reverse_proxy(host, port, ssl, upstream):
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("api() BOOM!!!")
       time.sleep(config.SLEEP_THREAD_SOCKET_RESTART)
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_REVERSE_PROXY"].get_logger().critical("Restarting thread")
-      start_reverse_proxy(host, port, ssl, upstream)
+      start_reverse_proxy(host, port, ssl_arg, upstream)
     else:
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_REVERSE_PROXY"].get_logger().info("Server reachable, restart not needed")
