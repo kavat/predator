@@ -41,17 +41,11 @@ def main():
       rp_certs = True
       for proxy in config.REVERSE_PROXY_HOSTS:
         if proxy["ssl"] != False:
-          for ssl in proxy["ssl"]:
-            if (os.path.isfile(ssl["cert"]) == False or os.path.isfile(ssl["key"]) == False):
-              config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().error("{} not loaded for reverse proxy module".format(ssl["cert"]))
-              rp_certs = False
-            else:
-              config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().info("{} loaded for reverse proxy module".format(ssl["cert"]))
-      if os.path.isfile(config.REVERSE_PROXY_SSL_CERT) == False or os.path.isfile(config.REVERSE_PROXY_SSL_KEY) == False:
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().error("{} not loaded for reverse proxy module".format(config.REVERSE_PROXY_SSL_CERT))
-        rp_certs = False
-      else:
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().info("{} loaded for reverse proxy module".format(config.REVERSE_PROXY_SSL_CERT))
+          if (os.path.isfile(proxy["ssl"]["cert"]) == False or os.path.isfile(proxy["ssl"]["key"]) == False):
+            config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().error("{} not loaded for reverse proxy module".format(proxy["ssl"]["cert"]))
+            rp_certs = False
+          else:
+            config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().info("{} loaded for reverse proxy module".format(proxy["ssl"]["cert"]))
       if rp_certs == True:
         start_reverse_proxies(config.REVERSE_PROXY_HOSTS)
       else:

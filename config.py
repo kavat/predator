@@ -92,10 +92,7 @@ PROXY_PORT = 7777
 REVERSE_PROXY_HOSTS = [
   {"host": "0.0.0.0", 
    "port": 443, 
-   "ssl": [
-     {"domain": "pippo_a.org", "cert": "{}/certs/pippo_a.pem".format(predator_file_path), "key": "{}/certs/pippo_a.key".format(predator_file_path)},
-     {"domain": "pippo_b.org", "cert": "{}/certs/pippo_b.pem".format(predator_file_path), "key": "{}/certs/pippo_b.key".format(predator_file_path)}
-   ],
+   "ssl": {"cert": "{}/certs/pippo_b.pem".format(predator_file_path), "key": "{}/certs/pippo_b.key".format(predator_file_path)},
    "upstream": "https://github.com"
   }, 
   {"host": "0.0.0.0", "port": 8080, "ssl": False, "upstream": "http://security.ubuntu.com/ubuntu"}

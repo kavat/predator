@@ -144,19 +144,11 @@ def start_reverse_proxy(host, port, ssl_arg, upstream):
 
     config_rp.bind = "{}:{}".format(host, port)
     if ssl_arg != False:
-      #ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-      #for ssl_conf in ssl_arg:
-      #  ssl_context_s = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-      #  ssl_context_s.load_cert_chain(ssl_conf["cert"], ssl_conf["key"])
-      #  sni_map[ssl_conf["domain"]] = ssl_context_s
+      config_rp.certfile = ssl_arg["cert"]
+      config_rp.keyfile = ssl_arg["key"]
 
-      #ssl_context.set_servername_callback(servername_callback)
-      config_rp.certfile = config.REVERSE_PROXY_SSL_CERT 
-      config_rp.keyfile = config.REVERSE_PROXY_SSL_KEY
-      #config_rp.ssl = ssl_context 
-
-      config_rp.loglevel = "DEBUG"  # 🔥 Log dettagliati
-      logging.basicConfig(level=logging.DEBUG)
+      #config_rp.loglevel = "DEBUG"
+      #logging.basicConfig(level=logging.DEBUG)
 
     asyncio.run(hypercorn.asyncio.serve(create_path_context(upstream), config_rp))
   except Exception as e:
