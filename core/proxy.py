@@ -400,48 +400,6 @@ class HttpProxy(BaseHTTPRequestHandler):
 
     return headers
 
-  def encode_content_body(self, text: bytes, encoding: str) -> bytes:
-    if encoding == "identity":
-      data = text
-    elif encoding in ("gzip", "x-gzip"):
-      data = gzip.compress(text)
-    elif encoding == "deflate":
-      data = zlib.compress(text)
-    elif encoding ==  "br":
-      data = brotli.compress(text)
-    else:
-      raise Exception("Unknown Content-Encoding: %s" % encoding)
-    return data
-
-  def decode_content_body(self, data: bytes, encoding: str, id_thread: str, hostname: str) -> bytes:
-    text = ""
-    if encoding == "identity":
-      text = data
-    elif encoding in ("gzip", "x-gzip"):
-      if isinstance(data, (bytes, bytearray)):
-        text = gzip.decompress(data)
-      else:
-        text = gzip.decompress(str.encode(data))
-    elif encoding == "deflate":
-      try:
-        text = zlib.decompress(data)
-      except zlib.error:
-        text = zlib.decompress(data, -zlib.MAX_WBITS)
-    elif encoding == "br":
-      if isinstance(data, (bytes, bytearray)):
-        text = brotli.decompress(data)
-      else:
-        if data != "":
-          text = brotli.decompress(str.encode(data))
-    else:
-      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().warn(id_thread + " - " + hostname + " Unknown Content-Encoding: " + encoding)
-    if isinstance(text, (bytes, bytearray)):
-      try:
-        return text.decode() 
-      except:
-        return text
-    return text
-
   def send_cacert(self):
 
     data = ""
@@ -770,7 +728,7 @@ def analyze_request(req, req_body, res, res_body, proxy_request, hostname):
     req_body_text = None
     content_type = req.headers.get("Content-Type", "")
     content_encoding = req.headers.get("Content-Encoding", "identity")
-    req_body_text = proxy_request.decode_content_body(req_body, content_encoding, proxy_request.id_thread, hostname)
+    req_body_text = decode_content_body(req_body, content_encoding, proxy_request.id_thread, hostname, "PROXY")
 
     if content_type.startswith("application/x-www-form-urlencoded"):
       req_body_text = parse_qsl(req_body)
@@ -802,7 +760,7 @@ def analyze_request(req, req_body, res, res_body, proxy_request, hostname):
 
   if res_body is not None:
     content_encoding = res.headers.get("Content-Encoding", "identity")
-    res_body_text = proxy_request.decode_content_body(res_body, content_encoding, proxy_request.id_thread, hostname)
+    res_body_text = decode_content_body(res_body, content_encoding, proxy_request.id_thread, hostname, "PROXY")
     content_type = res.headers.get("Content-Type", "")
     if content_type.startswith("application/json"):
       try:
@@ -879,3 +837,45 @@ def start_proxy(host, port, protocol):
       start_proxy(host, port, protocol)
     else:
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_PROXY"].get_logger().info("Server reachable, restart not needed")
+
+def encode_content_body(text: bytes, encoding: str) -> bytes:
+  if encoding == "identity":
+    data = text
+  elif encoding in ("gzip", "x-gzip"):
+    data = gzip.compress(text)
+  elif encoding == "deflate":
+    data = zlib.compress(text)
+  elif encoding ==  "br":
+    data = brotli.compress(text)
+  else:
+    raise Exception("Unknown Content-Encoding: %s" % encoding)
+  return data
+      
+def decode_content_body(data: bytes, encoding: str, id_thread: str, hostname: str, logname: str) -> bytes:
+  text = ""
+  if encoding == "identity":
+    text = data
+  elif encoding in ("gzip", "x-gzip"):
+    if isinstance(data, (bytes, bytearray)):
+      text = gzip.decompress(data)
+    else:
+      text = gzip.decompress(str.encode(data))
+  elif encoding == "deflate":
+    try:
+      text = zlib.decompress(data)
+    except zlib.error:
+      text = zlib.decompress(data, -zlib.MAX_WBITS)
+  elif encoding == "br":
+    if isinstance(data, (bytes, bytearray)):
+      text = brotli.decompress(data)
+    else:
+      if data != "":
+        text = brotli.decompress(str.encode(data))
+  else:
+    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_".format(logname)].get_logger().warn(id_thread + " - " + hostname + " Unknown Content-Encoding: " + encoding)
+  if isinstance(text, (bytes, bytearray)):
+    try:
+      return text.decode()
+    except:
+      return text
+  return text

@@ -9,14 +9,14 @@ import asyncio
 import config
 import time
 import re
-import logging
+import gzip
 
 from quart import Quart, request, websocket, Response
 from urllib.parse import unquote
 from core.utils import check_tcp_conn
 from multiprocessing import Process
 
-sni_map = {}
+from core.proxy import encode_content_body, decode_content_body
 
 def analyze_paylod_statically(payloads):
   to_analyze_json = []
@@ -67,19 +67,22 @@ def analyze_paylod_statically(payloads):
   analysis_r = []
   for payload in payloads_parsed:
     loop_array(payload, analysis_r)
+
   return analysis_r
 
 def create_path_context(upstream):
 
   rp = Quart(__name__)
-
   # Reverse proxy per richieste HTTP
+
   @rp.route('/<path:path>', methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
   async def proxy_request(path):
     async with aiohttp.ClientSession() as session:
       method = request.method
       url = f"{upstream}/{path}"
+        
       headers = {key: value for key, value in request.headers.items() if key.lower() != 'host'}
+ 
       data = await request.get_data()
       query_string = unquote(request.query_string.decode())
       payload = unquote(data.decode() if data else "")
@@ -106,7 +109,13 @@ def create_path_context(upstream):
           return Response("", status=http_status, content_type="text/html")
         else:
           async with session.request(method, url, headers=headers, data=data) as resp:
-            return (await resp.read(), resp.status, resp.headers.items())
+            content = await resp.read()
+            
+          response = Response(encode_content_body(content, resp.headers.get("Content-Encoding", "identity")), status=resp.status)
+          for key, value in resp.headers.items():
+            response.headers[key] = value
+
+      return response
 
   # Reverse proxy per WebSocket
   @rp.websocket('/ws/<path:path>')
@@ -128,11 +137,6 @@ def create_path_context(upstream):
 
   return rp
 
-def servername_callback(ssl_sock, servername, ssl_context):
-  if servername in sni_map:
-    certfile, keyfile = certs[servername]
-    ssl_context.load_cert_chain(certfile, keyfile)
-
 def start_reverse_proxies(proxies):
   for proxy in proxies:
     Process(target=start_reverse_proxy, args=(proxy["host"], proxy["port"], proxy["ssl"], proxy["upstream"],)).start()
@@ -143,12 +147,10 @@ def start_reverse_proxy(host, port, ssl_arg, upstream):
     config_rp = hypercorn.Config()
 
     config_rp.bind = "{}:{}".format(host, port)
+
     if ssl_arg != False:
       config_rp.certfile = ssl_arg["cert"]
       config_rp.keyfile = ssl_arg["key"]
-
-      #config_rp.loglevel = "DEBUG"
-      #logging.basicConfig(level=logging.DEBUG)
 
     asyncio.run(hypercorn.asyncio.serve(create_path_context(upstream), config_rp))
   except Exception as e:
