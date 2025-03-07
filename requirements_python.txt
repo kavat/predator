@@ -11,3 +11,4 @@ quart
 aiohttp
 asyncio
 hypercorn
+certifi
