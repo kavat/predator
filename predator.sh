@@ -168,8 +168,9 @@ start() {
     fi
     echo ""
     update_full
+    check_container=$(ps -o comm= -p 1 | grep -v "\(systemd\|init\)")
     if [ "${1}" == "daemon" ]; then
-      if [ -f "/.dockerenv" ]; then
+      if [ -f "/.dockerenv" ] || [ "${check_container}" != "" ]; then
 	nohup python3 -u $APP_PATH >> /proc/1/fd/1 2>&1 &
 	echo $! > $PID_FILE
 	echo "Service started."
@@ -179,7 +180,7 @@ start() {
         echo "Service started."
       fi
     else
-      if [ -f "/.dockerenv" ]; then
+      if [ -f "/.dockerenv" ] || [ "${check_container}" != "" ]; then
         python3 -u $APP_PATH
       else
         $PATH_VENV/bin/python3 -u $APP_PATH
