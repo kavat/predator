@@ -108,7 +108,11 @@ def create_path_context(upstream):
           print("{} = denied for {}".format(path, analysis_r))
           return Response("", status=http_status, content_type="text/html")
         else:
-          async with session.request(method, url, headers=headers, data=data) as resp:
+
+          if query_string != "":
+            url = "{}?{}".format(url, query_string)
+
+          async with session.request(method, url, headers=headers, data=data, ssl=False) as resp:
             content = await resp.read()
             
           response = Response(encode_content_body(content, resp.headers.get("Content-Encoding", "identity")), status=resp.status)
