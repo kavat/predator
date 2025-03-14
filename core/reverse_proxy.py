@@ -17,7 +17,7 @@ from core.utils import check_tcp_conn
 from multiprocessing import Process
 
 from core.proxy import encode_content_body, decode_content_body
-from core.async_client import PredatorAsyncHttpClient
+from core.predator_async_client import PredatorAsyncHttpClient
 
 def analyze_paylod_statically(payloads):
   to_analyze_json = []
@@ -106,7 +106,7 @@ def create_path_context(upstream):
       }
     if http_status == 403:
       print("{} = denied for {}".format(path, analysis_r))
-      return Response("", status=http_status, content_type="text/html")
+      return Response("Denied", status=http_status, content_type="text/html")
     else:
 
       client = PredatorAsyncHttpClient(base_url=upstream, headers=headers)
@@ -129,13 +129,13 @@ def create_path_context(upstream):
 
       content = resp.read()
       set_cookie_headers = resp.headers.get_list("set-cookie")
-      response = Response(encode_content_body(content, resp.headers.get("Content-Encoding", "identity")), status=resp.status_code)
+      content_encoded = encode_content_body(content, resp.headers.get("Content-Encoding", "identity"))
+      response = Response(content_encoded, status=resp.status_code)
       for key, value in resp.headers.items():
         if key.lower() != "set-cookie":
           response.headers[key] = value
 
-      if content != "":
-        response.headers['Content-Length'] = str(len(content))
+      response.headers['Content-Length'] = str(len(content_encoded))
 
       for cookie in set_cookie_headers:
         response.headers.add("Set-Cookie", cookie)
@@ -144,6 +144,7 @@ def create_path_context(upstream):
       response.headers["access-control-allow-credentials"] = True
       response.headers["access-control-expose-headers"] = "Access-Control-Allow-Methods"
       #response.headers["Access-Control-Allow-Origin"] = "*"
+      #print(response.headers)
 
       return response
 
