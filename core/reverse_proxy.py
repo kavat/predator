@@ -17,6 +17,7 @@ from core.utils import check_tcp_conn
 from multiprocessing import Process
 
 from core.proxy import encode_content_body, decode_content_body
+from core.async_client import PredatorAsyncHttpClient
 
 def analyze_paylod_statically(payloads):
   to_analyze_json = []
@@ -77,47 +78,72 @@ def create_path_context(upstream):
 
   @rp.route('/<path:path>', methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
   async def proxy_request(path):
-    async with aiohttp.ClientSession() as session:
-      method = request.method
-      url = f"{upstream}/{path}"
-        
-      headers = {key: value for key, value in request.headers.items() if key.lower() != 'host'}
- 
-      data = await request.get_data()
-      query_string = unquote(request.query_string.decode())
-      payload = unquote(data.decode() if data else "")
 
-      analysis_r = analyze_paylod_statically([query_string, payload])
-      if len(analysis_r) == 0:
-        http_status = 200
-        response_data = {
-          "message": "ok",
-          "path": path
-        }
-      else:
-        http_status = 403
-        response_data = {
-          "message": "ko",
-          "path": path,
-          "analysis": analysis_r
-        }
-      if config.REVERSE_PROXY_STATIC_JUMP == 1:
-        return Response(json.dumps(response_data), status=http_status, content_type="application/json")
-      else:
-        if http_status == 403:
-          print("{} = denied for {}".format(path, analysis_r))
-          return Response("", status=http_status, content_type="text/html")
+    method = request.method
+    #headers = {key: value for key, value in request.headers.items() if key.lower() != 'host'}
+    headers = {key: value for key, value in request.headers.items() }
+
+    #data = await request.get_data()
+    data = await request.data
+    query_string = unquote(request.query_string.decode())
+    payload = unquote(data.decode() if data else "")
+    if isinstance(payload, (bytes, bytearray)):
+      payload = payload.decode()
+
+    analysis_r = analyze_paylod_statically([query_string, payload])
+    if len(analysis_r) == 0:
+      http_status = 200
+      response_data = {
+        "message": "ok",
+        "path": path
+      }
+    else:
+      http_status = 403
+      response_data = {
+        "message": "ko",
+        "path": path,
+        "analysis": analysis_r
+      }
+    if http_status == 403:
+      print("{} = denied for {}".format(path, analysis_r))
+      return Response("", status=http_status, content_type="text/html")
+    else:
+
+      client = PredatorAsyncHttpClient(base_url=upstream, headers=headers)
+
+      if method == "GET":
+        if query_string != "":
+          url_to_call = "/{}?{}".format(path, query_string)
         else:
+          url_to_call = "/{}".format(path)
+        resp = await client.get(url_to_call)
 
-          if query_string != "":
-            url = "{}?{}".format(url, query_string)
+      if method == "POST":
+        if query_string != "":
+          url_to_call = "/{}?{}".format(path, query_string)
+        else:
+          url_to_call = "/{}".format(path)
+        resp = await client.post(url_to_call, data=payload)
 
-          async with session.request(method, url, headers=headers, data=data, ssl=False) as resp:
-            content = await resp.read()
-            
-          response = Response(encode_content_body(content, resp.headers.get("Content-Encoding", "identity")), status=resp.status)
-          for key, value in resp.headers.items():
-            response.headers[key] = value
+      await client.close()
+
+      content = resp.read()
+      set_cookie_headers = resp.headers.get_list("set-cookie")
+      response = Response(encode_content_body(content, resp.headers.get("Content-Encoding", "identity")), status=resp.status_code)
+      for key, value in resp.headers.items():
+        if key.lower() != "set-cookie":
+          response.headers[key] = value
+
+      if content != "":
+        response.headers['Content-Length'] = str(len(content))
+
+      for cookie in set_cookie_headers:
+        response.headers.add("Set-Cookie", cookie)
+
+      response.headers["access-control-allow-origin"] = "https://keycloak-green.experimental.airport.italy.thales"
+      response.headers["access-control-allow-credentials"] = True
+      response.headers["access-control-expose-headers"] = "Access-Control-Allow-Methods"
+      #response.headers["Access-Control-Allow-Origin"] = "*"
 
       return response
 

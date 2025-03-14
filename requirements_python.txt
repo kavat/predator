@@ -12,3 +12,4 @@ aiohttp
 asyncio
 hypercorn
 certifi
+httpx
