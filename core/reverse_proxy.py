@@ -117,13 +117,12 @@ def create_path_context(upstream):
         else:
           url_to_call = "/{}".format(path)
         resp = await client.get(url_to_call)
-
-      if method == "POST":
+      else:
         if query_string != "":
           url_to_call = "/{}?{}".format(path, query_string)
         else:
           url_to_call = "/{}".format(path)
-        resp = await client.post(url_to_call, data=payload)
+        resp = await client.request(method, url_to_call, data=payload)
 
       await client.close()
 
