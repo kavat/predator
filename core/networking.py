@@ -372,7 +372,7 @@ class PredatorPacketAnalysis:
           reporting = get_type_ip_fqdn_warn("", host)
           if reporting == "":
             reporting = "static_patterns"
-          self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_domain", ip_type_flow, "NO", content_size, "ND", reporting, sni, host) 
+          self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_domain", ip_type_flow, "N", content_size, "ND", reporting, sni, host) 
           
 
 def get_sni(packet):
