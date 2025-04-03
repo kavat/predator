@@ -385,7 +385,7 @@ def get_sni(packet):
               if servername != None:
                 return str(servername.servername.decode('latin-1'))
   except Exception as e:
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().warn("Unable to get SNI from TLS packet section: " + e, exc_info=True)
+    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().warn("Unable to get SNI from TLS packet section: " + str(e), exc_info=True)
     pass
   return ""
 
