@@ -1,0 +1,15 @@
+scapy
+flask
+brotli
+websocket==13.0.0
+cryptography
+geoip2
+elasticsearch
+requests
+pysqlite3
+quart
+aiohttp
+asyncio
+hypercorn
+certifi
+httpx

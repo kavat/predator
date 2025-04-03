@@ -1,0 +1,7 @@
+certs/
+conf/json
+var/
+dashboard/var
+__pycache__/
+core/__pycache__/
+predator_env/

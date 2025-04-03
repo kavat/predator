@@ -1,0 +1,103 @@
+<html>
+  <title>Predator</title>
+  <head>
+    <style>
+      body {font-family: Verdena}
+      td { text-align: center; min-width: 80px; padding: 3px;}
+      .left {float: left;}
+      div {width: 9px;}
+      #output {width: 100% !important;}
+    </style>
+    <script>
+      var URL = "/api";
+      function exec_api(api, div_arg) {
+        var url_to_call = URL + "?func=" + api;
+        var xmlHttp = new XMLHttpRequest();
+        if(api == "loadjson") {
+          url_to_call = url_to_call + "&file_json=" + encodeURIComponent(document.getElementById('txt_1').value);
+        }
+        if(api == "check_ip") {
+          url_to_call = url_to_call + "&ip=" + encodeURIComponent(document.getElementById('txt_2').value);
+        }
+        if(api == "threats") {
+          url_to_call = url_to_call + "&ip=" + encodeURIComponent(document.getElementById('txt_3').value);
+        }
+        if(api == "get_session_by_id") {
+          url_to_call = url_to_call + "&session_id=" + encodeURIComponent(document.getElementById('txt_4').value);
+        }
+        xmlHttp.open("GET", url_to_call, false); // false for synchronous request
+        xmlHttp.send(null);
+        var risp = JSON.parse(xmlHttp.responseText);
+        if(api == "conf" || api == "createca" || api == "createcert" || api == "threats" || api == "get_sessions" || api == "get_session_by_id") {
+          document.getElementById(div_arg).innerHTML = risp["msg"];
+        }
+        else {
+          alert(risp["msg"]);
+        }
+        return true;
+      }
+    </script>
+  </head>
+  <body>
+    <h2>Predator API</h2>
+    <img class="left" src="/static/images/predator_logo.png">
+    <div class="left">&nbsp;</div>
+    <table cellspacing=0 cellpadding=0 border=1>
+      <tr>
+        <td>API</td>
+        <td>Description</td>
+        <td>Argument</td>
+        <td>Action</td>
+      </tr>
+      <tr>
+        <td>configuration</td>
+        <td>Get system configuration</td>
+        <td> - </td>
+        <td><input onclick="exec_api('conf', 'output');" type="button" value="RUN"></td>
+      <tr>
+        <td>create Proxy CA</td>
+        <td>Create Certification Authority in order to intercept SSL traffic at layer 7 through Predator as proxy</td>
+        <td> - </td>
+        <td><input onclick="exec_api('createca', 'output');" type="button" value="RUN"></td>
+      </tr>
+      <tr>
+        <td>create Reverse Proxy certificate</td>
+        <td>Create certificate to expose in front of layer 7 reverse proxy</td>
+        <td> - </td>
+        <td><input onclick="exec_api('createcert', 'output');" type="button" value="RUN"></td>
+      </tr>
+      <tr>
+        <td>loadjson</td>
+        <td>Load specific JSON placed in {{ json_path }}, all JSON will be loaded if no JSON is specified</td>
+        <td><input type="text" value="" id="txt_1"></td>
+        <td><input onclick="exec_api('loadjson', '');" type="button" value="RUN"></td>
+      </tr>
+      <tr>
+        <td>Test</td>
+        <td>Test API server with dummy message</td>
+        <td> - </td>
+        <td><input onclick="exec_api('status', '');" type="button" value="RUN"></td>
+      </tr>
+      <tr>
+        <td>Check IP</td>
+        <td>Check if IP is blacklisted</td>
+        <td><input type="text" value="" id="txt_2"></td>
+        <td><input onclick="exec_api('check_ip', '');" type="button" value="RUN"></td>
+      </tr>
+      <tr>
+        <td>L7 sessions list</td>
+        <td>Get L7 sessions opened</td>
+        <td> - </td>
+        <td><input onclick="exec_api('get_sessions', 'output');" type="button" value="RUN"></td>
+      </tr>
+      <tr>
+        <td>L7 session content</td>
+        <td>Get L7 session opened filtered by session_id</td>
+        <td><input type="text" value="" id="txt_4"></td>
+        <td><input onclick="exec_api('get_session_by_id', 'output');" type="button" value="RUN"></td>
+      </tr>
+    </table>
+    <br><br><br><br><br><br>
+    <div id='output'></div>
+  </body>
+</html>
