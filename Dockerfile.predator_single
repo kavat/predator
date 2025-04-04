@@ -10,7 +10,7 @@ RUN mkdir predator/certs
 ADD core ./predator/core
 ADD conf ./predator/conf
 
-COPY config.py ./predator/config.py
+COPY config.py.ps ./predator/config.py
 COPY predator.py ./predator/predator.py
 COPY predator.sh ./predator/predator.sh
 
