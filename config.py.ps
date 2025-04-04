@@ -94,10 +94,7 @@ REVERSE_PROXY_HOSTS = [
    "port": 443, 
    "ssl": {"cert": "{}/certs/tls.crt".format(predator_file_path), "key": "{}/certs/tls.key".format(predator_file_path)},
    "upstream_https": os.environ['UPSTREAM_HTTPS'],
-   "upstream_wss": {
-     "url": os.environ['UPSTREAM_WSS'],
-     "origin": os.environ['HTTP_ORIGIN']
-   }
+   "upstream_wss": os.environ['UPSTREAM_WSS']
   } 
 #  {"host": "0.0.0.0", 
 #   "port": 8080, 

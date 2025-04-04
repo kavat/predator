@@ -21,6 +21,7 @@ from aiohttp import web
 
 from core.proxy import encode_content_body, decode_content_body
 from core.async_client import PredatorAsyncHttpClient
+from core.client_ws import connect_ws_fixed
 
 #logging.basicConfig(level=logging.DEBUG)
 
@@ -91,7 +92,7 @@ def create_path_context(upstream_https, upstream_wss):
     headers = {key: value for key, value in websocket.headers.items()}  # Copia degli header
     try:
       await websocket.accept()
-      async with websockets.connect(f"{upstream_wss['url']}/{path}", extra_headers=headers, ssl=ssl_context, origin=upstream_wss['origin']) as ws:
+      async with connect_ws_fixed(f"{upstream_wss}/{path}", extra_headers=headers, ssl=ssl_context) as ws:
         async def forward_client_to_server():
           while True:
             message = await websocket.receive()
