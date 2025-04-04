@@ -1,7 +1,8 @@
 scapy
 flask
 brotli
-websocket==13.0.0
+websocket
+websockets==13.0.0
 cryptography
 geoip2
 elasticsearch
