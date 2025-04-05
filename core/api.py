@@ -20,6 +20,8 @@ class PredatorApi:
       f"IDS: {'enabled' if config.IDS else 'disabled'}<br>",
       f"PROXY: {'enabled' if config.PROXY else 'disabled'}<br>",
       f"PROXY IP/PORT: {config.PROXY_HOST}:{config.PROXY_PORT}<br>",
+      f"REVERSE_PROXY: {'enabled' if config.REVERSE_PROXY else 'disabled'}<br>",
+      f"REVERSE_PROXIES: {config.REVERSE_PROXY_HOSTS}<br>",
       f"API: {'enabled' if config.API else 'disabled'}<br>",
       f"API IP/PORT: {config.MANAGEMENT_HOST}:{config.MANAGEMENT_PORT}<br>",
       f"DUMMY: {'enabled' if config.DUMMY else 'disabled'}<br>",

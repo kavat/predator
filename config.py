@@ -119,7 +119,7 @@ DASHBOARD_URL = "http://127.0.0.1:8888"
 
 IDS = False
 PROXY = False
-REVERSE_PROXY = True
+REVERSE_PROXY = False
 API = True
 DUMMY = False
 SEND_TO_SYSLOG = False

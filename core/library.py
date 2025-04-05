@@ -100,7 +100,9 @@ class Library:
     logger.info("Rules loaded successfully.")
 
   def server(self):
-    self.init_rules()
+
+    if config.IDS == True:
+      self.init_rules()
 
     try:
       os.unlink(config.SOCKET_LIBRARY)
