@@ -88,6 +88,8 @@ class Library:
           self.upd_blacklist_fqdn(parse_json(file_path))
         elif file_name == "tor_nodes.json":
           self.upd_blacklist_ip(parse_json(file_path))
+        elif file_name == "suricata.json":
+          self.upd_blacklist_ip(parse_json(file_path))
         else:
           logger.warning(f"Ignoring unknown file: {file_name}")
       except Exception as e:
@@ -173,6 +175,8 @@ class Library:
       elif message.endswith("_fqdn.json"):
         self.upd_blacklist_fqdn(parse_json(message))
       elif message.endswith("tor_nodes.json"):
+        self.upd_blacklist_ip(parse_json(message))
+      elif message.endswith("suricata.json"):
         self.upd_blacklist_ip(parse_json(message))
       else:
         logger.warning(f"Ignoring unknown file: {message}")
