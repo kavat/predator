@@ -117,7 +117,10 @@ def create_path_context(upstream_https, upstream_wss):
     query_string = unquote(request.query_string.decode())
     payload = unquote(data.decode() if data else "")
     if isinstance(payload, (bytes, bytearray)):
-      payload = payload.decode()
+      try:
+        payload = payload.decode()
+      except:
+        return Response("Denied, unable decoding payload", status=403, content_type="text/html") 
 
     analysis_r = analyze_paylod_statically([query_string, payload])
     if len(analysis_r) == 0:
@@ -135,7 +138,7 @@ def create_path_context(upstream_https, upstream_wss):
       }
     if http_status == 403:
       print("{} = denied for {}".format(path, analysis_r))
-      return Response("Denied", status=http_status, content_type="text/html")
+      return Response("Denied, {} {}".format(path, analysis_r), status=http_status, content_type="text/html")
     else:
 
       client = PredatorAsyncHttpClient(base_url=upstream_https, headers=headers)

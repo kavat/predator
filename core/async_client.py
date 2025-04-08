@@ -24,10 +24,10 @@ class PredatorAsyncHttpClient:
       response.raise_for_status()  # Solleva un'eccezione per errori HTTP
       return response
     except httpx.HTTPStatusError as e:
-      print(f"Errore HTTP {e.response.status_code}: {e.response.text}")
+      print(f"{url}: Errore HTTP {e.response.status_code}: {e.response.text}")
       return response
     except httpx.RequestError as e:
-      print(f"Errore di richiesta: {e}")
+      print(f"{url} Errore di richiesta: {e}")
     return None
 
   async def get(self, url, params=None, headers=None):

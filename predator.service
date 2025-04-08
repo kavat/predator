@@ -1,0 +1,12 @@
+# /etc/systemd/system/predator.service 
+[Unit]
+Description=Predator core service
+After=network-online.target
+
+[Service]
+User=root
+ExecStart=/opt/predator/predator.sh run
+ExecStop=/opt/predator/predator.sh stop
+
+[Install]
+WantedBy=multi-user.target
