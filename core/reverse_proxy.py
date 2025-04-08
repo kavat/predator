@@ -104,7 +104,7 @@ def create_path_context(upstream_https, upstream_wss):
             await websocket.send(message)
         await asyncio.gather(forward_client_to_server(), forward_server_to_client())
     except websockets.exceptions.InvalidStatusCode as e:
-      print(f"Errore nella connessione WebSocket: {e}")
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_REVERSE_PROXY"].get_logger().critical("Error in websocket connection: {}".format(e))
 
   # Reverse proxy for HTTP request
   @rp.route('/<path:path>', methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
@@ -137,7 +137,7 @@ def create_path_context(upstream_https, upstream_wss):
         "analysis": analysis_r
       }
     if http_status == 403:
-      print("{} = denied for {}".format(path, analysis_r))
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_REVERSE_PROXY"].get_logger().critical("{} = denied for {}".format(path, analysis_r))
       return Response("Denied, {} {}".format(path, analysis_r), status=http_status, content_type="text/html")
     else:
 

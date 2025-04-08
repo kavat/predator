@@ -1,6 +1,7 @@
 import httpx
 import asyncio
 import logging
+import config
 
 class PredatorAsyncHttpClient:
   def __init__(self, base_url=None, headers=None, timeout=60):
@@ -24,10 +25,13 @@ class PredatorAsyncHttpClient:
       response.raise_for_status()  # Solleva un'eccezione per errori HTTP
       return response
     except httpx.HTTPStatusError as e:
-      print(f"{url}: Errore HTTP {e.response.status_code}: {e.response.text}")
+      if e.response.status_code != 404:
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_REVERSE_PROXY"].get_logger().info(f"{url}: Errore HTTP {e.response.status_code}")
+      else:
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_REVERSE_PROXY"].get_logger().info(f"{url}: Errore HTTP {e.response.status_code}: {e.response.text}")
       return response
     except httpx.RequestError as e:
-      print(f"{url} Errore di richiesta: {e}")
+      config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_REVERSE_PROXY"].get_logger().error(f"{url} Errore di richiesta: {e}")
     return None
 
   async def get(self, url, params=None, headers=None):
