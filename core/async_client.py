@@ -25,7 +25,7 @@ class PredatorAsyncHttpClient:
       response.raise_for_status()  # Solleva un'eccezione per errori HTTP
       return response
     except httpx.HTTPStatusError as e:
-      if e.response.status_code != 404:
+      if e.response.status_code == 404:
         config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_REVERSE_PROXY"].get_logger().info(f"{url}: Errore HTTP {e.response.status_code}")
       else:
         config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_REVERSE_PROXY"].get_logger().info(f"{url}: Errore HTTP {e.response.status_code}: {e.response.text}")
