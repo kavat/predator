@@ -41,7 +41,18 @@ Details:
 
 ```python
 REVERSE_PROXY_HOSTS = [
-  {"host": "0.0.0.0", "port": 443, "ssl": True, "upstream": "https://github.com"},
-  {"host": "0.0.0.0", "port": 8080, "ssl": False, "upstream": "http://security.ubuntu.com/ubuntu"}
+  {"host": "0.0.0.0",
+   "port": 443,
+   "ssl": {"cert": "{}/certs/tls.crt".format(predator_file_path), "key": "{}/certs/tls.key".format(predator_file_path)},
+   "upstream_https": "UPSTREAM_HTTPS",
+   "upstream_wss": "UPSTREAM_WSS"
+  }
+  {"host": "0.0.0.0", 
+   "port": 80,
+   "ssl": False, 
+   "upstream_http": "UPSTREAM_HTTP"
+  }
 ]
+REVERSE_PROXY_STATIC_JUMP = 0
+REVERSE_PROXY_REGEXP = [r"(?i)(<script.*?>.*?</script>|javascript:|on\w+\s*=|alert\s*\(|document\.cookie|document\.write|eval\s*\(|union\s+select|select.*?from|insert\s+into|update\s+\w+\s+set|delete\s+from|drop\s+table|or\s+1=1|--|#|/\*.*?\*/)"]
 ```
