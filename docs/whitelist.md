@@ -1,5 +1,6 @@
 # Whitelists IP and domains
 Predator allows filters to whitelist events raised.
+
 File is in JSON format and placed in HOME_PREDATOR/conf/json/whitelist.json
 
 Filter can be grouped as:
