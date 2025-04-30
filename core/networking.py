@@ -274,6 +274,8 @@ class PredatorPacketAnalysis:
         packet_content = packet[Raw].load.decode('latin-1')
         for riga in packet_content.split("\n"):
           if riga.strip() != "":
+            if riga.strip().startswith('HOST') == True:
+              return (riga.strip().replace("HOST: ", ""), len(packet_content))
             if riga.strip().startswith('Host') == True:
               return (riga.strip().replace("Host: ", ""), len(packet_content))
     except:
@@ -397,6 +399,8 @@ def get_host_from_header(predator_packet_analysis, init_conn_ip, init_conn_port,
           if endpoint_conn_port in matrix_connections[init_conn_ip][init_conn_port][endpoint_conn_ip]:
             for riga in matrix_connections[init_conn_ip][init_conn_port][endpoint_conn_ip][endpoint_conn_port]['content']:
               if riga.strip() != "":
+                if riga.strip().startswith('HOST') == True:
+                  return riga.strip().replace("HOST: ", "")
                 if riga.strip().startswith('Host') == True:
                   return riga.strip().replace("Host: ", "")
   except Exception as e:
