@@ -1,5 +1,4 @@
 from scapy.all import *
-from scapy.layers.tls import *
 from threading import Lock
 
 from core.library import Library
@@ -28,6 +27,7 @@ from core.common_utils import (
   append_json_threat,
   string2b64
 )
+from core.logging import PredatorLogger
 
 import os
 import config
@@ -35,14 +35,20 @@ import time
 import syslog
 import ipaddress
 import socket
+import redis
 
 class PredatorPacketAnalysis:
 
-  def __init__(self, filter_string):
+  def __init__(self, filter_string, label, db):
     self.filter_string = filter_string
+    self.label = label
     self.matrix_connections = {}
     self.matrix_connections_lock = Lock()
     self.upd_lock = Lock()
+    self.packets_stored = 0
+    self.packets_managed = 0
+    self.redis = redis.Redis(host="127.0.0.1", port=6379, db=db)
+    self.redis_pipeline = self.redis.pipeline()
 
   def print_matrix(self, flags):
     print("PRINT POST " + flags)
@@ -51,6 +57,9 @@ class PredatorPacketAnalysis:
 
   def get_handler(self):
     return self
+
+  def get_num_packets(self):
+    return self.packets_managed
 
   def add_threat_l7(self, ip1, port1, ip2, port2, proto, flags, type_threat, type_flow, content_whitelisted, content_size, content_session_id, reporting, sni, host, payload):
     if type_flow == "dst":
@@ -245,20 +254,21 @@ class PredatorPacketAnalysis:
 
   def tcp_flag_fr(self, packet, flags, ip_check, port_check, ip2, port2, proto, type_flow):
     if "F" in flags or "R" in flags:
-      print_connection_content(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(type_flow), flags)
-      print_connection_content(self.get_handler(), ip2, port2, ip_check, port_check, "evil_{}".format(type_flow), flags)
+      #print_connection_content(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(type_flow), flags)
+      #print_connection_content(self.get_handler(), ip2, port2, ip_check, port_check, "evil_{}".format(type_flow), flags)
       self.end_matrix_connection(ip_check, port_check, ip2, port2, "evil_{}".format(type_flow), flags)
       self.end_matrix_connection(ip2, port2, ip_check, port_check, "evil_{}".format(type_flow), flags)
       #self.print_matrix(flags)
 
-  def tcp_flag_p(self, packet, flags, ip_check, port_check, ip2, port2, proto, type_flow):
+  def tcp_flag_p(self, packet, flags, ip_check, port_check, ip2, port2, proto, type_flow, content_tls):
     if 'P' in flags and 'Raw' in packet:
       packet_content = ""
-      try:
-        packet_content = packet[Raw].load.decode('latin-1')
-      except Exception as ed:
-        packet_content = ""
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("Error decoding payload for evil_{} {} {}:{} -> {}:{} = {}".format(type_flow, flags, ip_check, port_check, ip2, port2, ed))
+      if content_tls == False:
+        try:
+          packet_content = packet[Raw].load.decode('latin-1')
+        except Exception as ed:
+          packet_content = ""
+          config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("Error decoding payload for evil_{} {} {}:{} -> {}:{} = {}".format(type_flow, flags, ip_check, port_check, ip2, port2, ed))
       if packet_content != "":
         self.append_content_matrix_connection(ip_check, port_check, ip2, port2, packet[Raw].load.decode('latin-1'), "evil_{}".format(type_flow))
         self.append_content_matrix_connection(ip2, port2, ip_check, port_check, packet[Raw].load.decode('latin-1'), "evil_{}".format(type_flow))
@@ -274,10 +284,8 @@ class PredatorPacketAnalysis:
         packet_content = packet[Raw].load.decode('latin-1')
         for riga in packet_content.split("\n"):
           if riga.strip() != "":
-            if riga.strip().startswith('HOST') == True:
-              return (riga.strip().replace("HOST: ", ""), len(packet_content))
-            if riga.strip().startswith('Host') == True:
-              return (riga.strip().replace("Host: ", ""), len(packet_content))
+            if riga.strip().lower().startswith('host') == True:
+              return (riga.strip().replace("host: ", ""), len(packet_content))
     except:
       pass
     return ("", 0)
@@ -336,7 +344,15 @@ class PredatorPacketAnalysis:
         if not check_domain_whitelisted(qname, rdata, "dns_request"):
           self.add_threat_dns(pkt, sport, dport, proto, "dns_request", rdata, qname)
 
+  def store(self, packet):
+    self.packets_stored += 1
+    self.redis_pipeline.lpush(self.label, raw(packet))
+    if self.packets_stored >= config.REDIS_BATCH_SIZE:
+      self.packets_stored = 0
+      self.redis_pipeline.execute()
+
   def analyze(self, packet):
+    #self.packets_managed += 1
     if IP in packet:
       if packet.haslayer('UDP') and packet.haslayer('DNS'):
         self.dns_response(packet, packet[UDP].sport, packet[UDP].dport, "UDP")
@@ -349,46 +365,106 @@ class PredatorPacketAnalysis:
         if UDP in packet:
           (proto, dport, sport) = "UDP", packet[UDP].dport, packet[UDP].sport
         if proto != "":
-          if packet.haslayer(TLS):
-            conf.tls_session_enable = True
-            sni = get_sni(packet)
+          id_log = id_generator(30)
+          connection_to_analyze = [
+            {'ip': packet[IP].dst, 'port': dport, 'proto': proto, 'type': 'dst', 'ip2': packet[IP].src, 'port2': sport},
+            {'ip': packet[IP].src, 'port': sport, 'proto': proto, 'type': 'src', 'ip2': packet[IP].dst, 'port2': dport}
+          ]
 
-        connection_to_analyze = [
-          {'ip': packet[IP].dst, 'port': dport, 'proto': proto, 'type': 'dst', 'ip2': packet[IP].src, 'port2': sport},
-          {'ip': packet[IP].src, 'port': sport, 'proto': proto, 'type': 'src', 'ip2': packet[IP].dst, 'port2':dport}
-        ]
-        for ip in connection_to_analyze:
-          (ip_check, port_check, proto_check, ip_type_flow, ip2, port2)  = ip['ip'], ip['port'], ip['proto'], ip['type'], ip['ip2'], ip['port2']
-          if(is_ip_checkable(ip_check, port_check, proto_check)):
-            self.init_matrix_connection(ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
-            self.tcp_flag_p(packet, flags, ip_check, port_check, ip2, port2, proto, ip_type_flow)
-            self.tcp_flag_fr(packet, flags, ip_check, port_check, ip2, port2, proto, ip_type_flow)
-            host = get_host_from_header(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
-            content_whitelisted = check_connection_content(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
-            content_size = get_connection_content_size(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
-            content_session_id = get_connection_content_session_id(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
-            self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_ip", ip_type_flow, content_whitelisted, content_size, content_session_id, get_type_ip_fqdn_warn(ip_check, ""), sni, host)
-        host, content_size = self.get_host_from_packet_raw(packet)
-        if is_malicious_host(host):
-          reporting = get_type_ip_fqdn_warn("", host)
-          if reporting == "":
-            reporting = "static_patterns"
-          self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_domain", ip_type_flow, "N", content_size, "ND", reporting, sni, host) 
-          
+          for ip in connection_to_analyze:
+            (ip_check, port_check, proto_check, ip_type_flow, ip2, port2)  = ip['ip'], ip['port'], ip['proto'], ip['type'], ip['ip2'], ip['port2']
+            if is_ip_checkable(ip_check, port_check, proto_check):
+              config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = CHECK")
+              content_tls = False
+              sni = ""
+              if check_tls(packet):
+                sni = extract_sni(packet)
+                content_tls = True
+              config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST SNI")
+              if flags.startswith("S"):
+                self.init_matrix_connection(ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
+                config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST MATRIX INIT")
+              self.tcp_flag_p(packet, flags, ip_check, port_check, ip2, port2, proto, ip_type_flow, content_tls)
+              config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST FLAG PUSH")
+              self.tcp_flag_fr(packet, flags, ip_check, port_check, ip2, port2, proto, ip_type_flow)
+              config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST FLAG FIN RST")
+              host = get_host_from_header(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
+              config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST HOST")
+              content_whitelisted = check_connection_content(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
+              config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST CONTENT WL")
+              content_size = get_connection_content_size(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
+              config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST CONTENT SIZE")
+              content_session_id = get_connection_content_session_id(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
+              config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST CONTENT SESSION")
+              self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_ip", ip_type_flow, content_whitelisted, content_size, content_session_id, get_type_ip_fqdn_warn(ip_check, ""), sni, host)
+              config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST ADD THREAT")
+            #else:
+              #config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = SKIP")
 
-def get_sni(packet):
+          host, content_size = self.get_host_from_packet_raw(packet)
+          if is_malicious_host(host):
+            config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {host} L4_domain")
+            reporting = get_type_ip_fqdn_warn("", host)
+            if reporting == "":
+              reporting = "static_patterns"
+            config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {host} pre add threat")
+            self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_domain", ip_type_flow, "NO", content_size, "ND", reporting, sni, host) 
+            config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {host} post add threat")
+
+
+def extract_sni(packet):
   try:
-    for riga in packet[TLS].msg:
-      if hasattr(riga, 'ext') and riga.ext != None:
-        for ext in riga.ext:
-          if hasattr(ext, 'servernames'):
-            for servername in ext.servernames:
-              if servername != None:
-                return str(servername.servername.decode('latin-1'))
-  except Exception as e:
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().warn("Unable to get SNI from TLS packet section: " + str(e), exc_info=True)
+
+    if packet.haslayer(TCP) and packet.haslayer(Raw):
+      data = packet[Raw].load
+
+      if data[0] == 0x16 and data[5] == 0x01:  # TLS Handshake + ClientHello
+        session_id_length = data[43]
+        ptr = 44 + session_id_length
+
+        if ptr + 2 > len(data):
+          return ""
+
+        cipher_suites_length = (data[ptr] << 8) | data[ptr+1]
+        ptr += 2 + cipher_suites_length
+
+        if ptr + 1 > len(data):
+          return ""
+
+        compression_methods_length = data[ptr]
+        ptr += 1 + compression_methods_length
+
+        if ptr + 2 > len(data):
+          return ""
+
+        extensions_length = (data[ptr] << 8) | data[ptr+1]
+        ptr += 2
+        end = ptr + extensions_length
+
+        while ptr + 4 <= end and ptr + 4 <= len(data):
+          ext_type = (data[ptr] << 8) | data[ptr+1]
+          ext_length = (data[ptr+2] << 8) | data[ptr+3]
+          ptr += 4
+          if ext_type == 0x00 and ptr + ext_length <= len(data):  # SNI
+            sni_list_length = (data[ptr] << 8) | data[ptr+1]
+            ptr += 2
+            sni_type = data[ptr]
+            ptr += 1
+            sni_length = (data[ptr] << 8) | data[ptr+1]
+            ptr += 2
+            sni = data[ptr:ptr+sni_length].decode(errors='ignore')
+            return sni
+          ptr += ext_length
+  except Exception:
     pass
   return ""
+
+def check_tls(packet):
+  if packet.haslayer(TCP) and packet.haslayer(Raw):
+    data = packet[Raw].load
+    if data[0] == 0x16 and data[5] == 0x01:  # TLS Handshake, ClientHello
+      return True
+  return False
 
 def get_host_from_header(predator_packet_analysis, init_conn_ip, init_conn_port, endpoint_conn_ip, endpoint_conn_port, label, flags):
   matrix_connections = predator_packet_analysis.get_matrix_connections()
@@ -399,28 +475,50 @@ def get_host_from_header(predator_packet_analysis, init_conn_ip, init_conn_port,
           if endpoint_conn_port in matrix_connections[init_conn_ip][init_conn_port][endpoint_conn_ip]:
             for riga in matrix_connections[init_conn_ip][init_conn_port][endpoint_conn_ip][endpoint_conn_port]['content']:
               if riga.strip() != "":
-                if riga.strip().startswith('HOST') == True:
-                  return riga.strip().replace("HOST: ", "")
-                if riga.strip().startswith('Host') == True:
-                  return riga.strip().replace("Host: ", "")
+                if riga.strip().lower().startswith('host') == True:
+                  return riga.strip().lower().replace("host: ", "")
   except Exception as e:
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().critical(e, exc_info=True)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("Error getting sni from session content {} {} {}:{} -> {}:{} = {}".format(label, flags, init_conn_ip, init_conn_port, endpoint_conn_ip, endpoint_conn_port, e))
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("get_sni_from_header() BOOM!!!")
   return ""
 
-def sniff(interface, str_filter):
+def sniff(interface, str_filter, label, predator_handler):
   try:
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_SNIFFERS"].get_logger().info("STARTING THREAD SNIFFER " + interface + " WITH FILTER " + str_filter)
-    handler = PredatorPacketAnalysis(str_filter)
-    handler.init_matrix_connections()
-    load_layer('tls')
-    scapy.all.sniff(iface=interface, store=False, prn=handler.analyze, filter=str_filter)
+    config.LOGGERS_SNIFFERS[label] = PredatorLogger(f"PREDATOR_SNIFFERS_{label}", config.PATH_LOGGER_PREDATOR_SNIFFERS_GEN.replace("XXX", label), config.LOG_TO_STD, logging.INFO)
+    config.LOGGERS_SNIFFERS[label].get_logger().info("STARTING THREAD SNIFFER " + str(interface) + " WITH FILTER " + str_filter)
+    #scapy.all.sniff(iface=interface, store=False, prn=handler.analyze, filter=str_filter)
+    scapy.all.sniff(iface=interface, store=False, prn=predator_handler.store, filter=str_filter)
   except Exception as e:
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().critical(e, exc_info=True)
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_SNIFFERS"].get_logger().critical(e, exc_info=True)
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_SNIFFERS"].get_logger().critical("Wait " + str(config.SLEEP_THREAD_RESTART) + " to thread restart")
+    config.LOGGERS_SNIFFERS[label].get_logger().critical(e, exc_info=True)
+    config.LOGGERS_SNIFFERS[label].get_logger().critical("Wait " + str(config.SLEEP_THREAD_RESTART) + " to thread restart")
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("sniff() BOOM!!!")
     time.sleep(config.SLEEP_THREAD_RESTART)
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_SNIFFERS"].get_logger().critical("Restarting thread")
-    sniff(interface, str_filter)
+    config.LOGGERS_SNIFFERS[label].get_logger().critical("Restarting thread")
+    sniff(interface, str_filter, label, predator_handler)
+
+def analyze_packets(interface, str_filter, label, predator_handler):
+  try:
+    config.LOGGERS_SNIFFERS[label] = PredatorLogger(f"PREDATOR_SNIFFERS_{label}", config.PATH_LOGGER_PREDATOR_SNIFFERS_GEN.replace("XXX", label), config.LOG_TO_STD, logging.INFO)
+    config.LOGGERS_SNIFFERS[label].get_logger().info("STARTING THREAD ANALYZER " + str(interface) + " WITH FILTER " + str_filter)
+    predator_handler.init_matrix_connections()
+    while True:
+      try:
+        packets = predator_handler.redis.lrange(label, -config.REDIS_BATCH_SIZE, -1)
+        if packets:
+          for raw_pkt in list(reversed(packets)):
+            predator_handler.analyze(Ether(raw_pkt))
+          predator_handler.redis.ltrim(label, 0, -config.REDIS_BATCH_SIZE -1)
+      except Exception as e:
+        print(e)
+        pass
+      time.sleep(0.100)
+  except Exception as e:
+    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().critical(e, exc_info=True)
+    config.LOGGERS_SNIFFERS[label].get_logger().critical(e, exc_info=True)
+    config.LOGGERS_SNIFFERS[label].get_logger().critical("Wait " + str(config.SLEEP_THREAD_RESTART) + " to thread restart")
+    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("analyze_packets() BOOM!!!")
+    time.sleep(config.SLEEP_THREAD_RESTART)
+    config.LOGGERS_SNIFFERS[label].get_logger().critical("Restarting thread")
+    analyze_packets(interface, str_filter, label, predator_handler)

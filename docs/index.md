@@ -4,6 +4,7 @@ Predator IDS and Proxy Solution
 Predator official documentation
 
 - [Main concepts](./main_concepts.md)
+- [Requirements](./requirements.md)
 - [Overview](./overview.md)
 - [Rules](./rules.md)
 - [Whitelist](./whitelist.md)
