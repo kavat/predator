@@ -21,8 +21,8 @@ from core.utils import (
   get_curdatetime
 )
 from core.common_utils import (
-  parse_json, 
-  parse_json_array, 
+  parse_json,
+  parse_json_array,
   get_string_md5,
   append_json_threat,
   string2b64
@@ -346,7 +346,7 @@ class PredatorPacketAnalysis:
 
   def store(self, packet):
     self.packets_stored += 1
-    self.redis_pipeline.lpush(self.label, raw(packet))
+    self.redis_pipeline.rpush(self.label, raw(packet))
     if self.packets_stored >= config.REDIS_BATCH_SIZE:
       self.packets_stored = 0
       self.redis_pipeline.execute()
@@ -408,7 +408,7 @@ class PredatorPacketAnalysis:
             if reporting == "":
               reporting = "static_patterns"
             config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {host} pre add threat")
-            self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_domain", ip_type_flow, "NO", content_size, "ND", reporting, sni, host) 
+            self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_domain", ip_type_flow, "NO", content_size, "ND", reporting, sni, host)
             config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {host} post add threat")
 
 
@@ -505,15 +505,17 @@ def analyze_packets(interface, str_filter, label, predator_handler):
     predator_handler.init_matrix_connections()
     while True:
       try:
-        packets = predator_handler.redis.lrange(label, -config.REDIS_BATCH_SIZE, -1)
+        packets = predator_handler.redis.lrange(label, 0, config.REDIS_READ_SIZE -1)
         if packets:
-          for raw_pkt in list(reversed(packets)):
+          for raw_pkt in packets:
             predator_handler.analyze(Ether(raw_pkt))
-          predator_handler.redis.ltrim(label, 0, -config.REDIS_BATCH_SIZE -1)
+          predator_handler.redis.ltrim(label, config.REDIS_READ_SIZE, -1)
+        else:
+          time.sleep(0.100)
       except Exception as e:
         print(e)
+        time.sleep(0.100)
         pass
-      time.sleep(0.100)
   except Exception as e:
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().critical(e, exc_info=True)
     config.LOGGERS_SNIFFERS[label].get_logger().critical(e, exc_info=True)
