@@ -188,6 +188,8 @@ def check_connection_content(predator_packet_analysis, init_conn_ip, init_conn_p
                       if str_pattern != "" and riga.strip().endswith(str_pattern):
                         return "Y"
                     else:
+                      if riga.strip() == "HOST: {}".format(riga_w):
+                        return "Y"
                       if riga.strip() == "Host: {}".format(riga_w):
                         return "Y"
   except Exception as e:
@@ -212,6 +214,8 @@ def check_connection_content(predator_packet_analysis, init_conn_ip, init_conn_p
                       if str_pattern != "" and riga.strip().endswith(str_pattern):
                         return "Y"
                     else: 
+                      if riga.strip() == "HOST: {}".format(riga_w):
+                        return "Y"
                       if riga.strip() == "Host: {}".format(riga_w):
                         return "Y"
   except Exception as e:
@@ -268,23 +272,39 @@ def get_connection_content_session_id(predator_packet_analysis, init_conn_ip, in
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("check_connection_content_session_id() BOOM!!!")
   return "ND"
 
-def check_if_ip_is_in_cidrs(ip):
+def check_if_ip_is_in_cidrs_old(ip):
   for cidr in config.CIDRS:
     if ipaddress.ip_address(ip) in ipaddress.ip_network(cidr):
       return True
   return False
 
-def is_ip_checkable(ip, port, proto):
+def check_if_ip_is_in_cidrs(ip):
+  for label,values in config.CIDRS.items():
+    for cidr in values['cidrs']:
+      if ipaddress.ip_address(ip) in ipaddress.ip_network(cidr):
+        return True
+  return False
+
+def ip_is_checkable(ip, predator_obj):
   if(ipaddress.ip_address(ip).is_private == False and check_if_ip_is_in_cidrs(ip) == False):
-    if(Library().client("blacklist_ip|{}".format(ip)) != "no" and Library().client("whitelist|{}".format(ip))):
+    #if ip in predator_obj.blacklist_ip and ip not in predator_obj.whitelist:
+    #  return True
+    return True
+  return False
+
+def is_ip_checkable(ip, port, proto, predator_obj):
+  if(ipaddress.ip_address(ip).is_private == False and check_if_ip_is_in_cidrs(ip) == False):
+    #if(Library().client("blacklist_ip|{}".format(ip)) != "no" and Library().client("whitelist|{}".format(ip))):
+    if ip in predator_obj.blacklist_ip and ip not in predator_obj.whitelist:
       if net_whitelisted(ip, proto, str(port), "") == False:
         return True
   return False
 
-def is_malicious_host(host):
+def is_malicious_host(host, predator_obj):
   if host == "":
     return False
-  if Library().client("blacklist_fqdn|{}".format(host)) != "no" or static_fqdn_checks([host]):
+  #if Library().client("blacklist_fqdn|{}".format(host)) != "no" or static_fqdn_checks([host]):
+  if host in predator_obj.blacklist_fqdn or static_fqdn_checks([host]):
     return True
   return False
 

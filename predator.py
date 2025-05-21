@@ -1,6 +1,6 @@
 from core.threads import PredatorThread
 from core.pool import PredatorPool
-from core.networking import sniff, PredatorPacketAnalysis, analyze_packets
+from core.networking import sniff, PredatorPacketAnalysis, analyze_packets, build_net
 from core.library import Library, start_library_server
 from core.api import start_api
 from core.proxy import start_proxy
@@ -25,30 +25,32 @@ def main():
       args = []
 
     if config.IDS == True:
-      if (args != [] and args[0] == "-ids" and (args[1] == "tcp_http" or args[1] == "all")) or args == []:
-        str_filter = "tcp port 80"
-        label = "HTTP"
-        handler = PredatorPacketAnalysis(str_filter, label, 0)
-        config.THREADS["sniffer_tcp_http"] = PredatorPool("sniffer_tcp_http", sniff, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
-        config.THREADS["analyze_tcp_http"] = PredatorPool("analyze_tcp_http", analyze_packets, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
-      if (args != [] and args[0] == "-ids" and (args[1] == "tcp_https" or args[1] == "all")) or args == []:
-        str_filter = "tcp port 443"
-        label = "HTTPS"
-        handler = PredatorPacketAnalysis(str_filter, label, 1)
-        config.THREADS["sniffer_tcp_https"] = PredatorPool("sniffer_tcp_https", sniff, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
-        config.THREADS["analyze_tcp_https"] = PredatorPool("analyze_tcp_https", analyze_packets, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
-      if (args != [] and args[0] == "-ids" and (args[1] == "tcp_nohttp" or args[1] == "all")) or args == []:
-        str_filter = "tcp and not tcp port 80 and not tcp port 443"
-        label = "NOHTTP"
-        handler = PredatorPacketAnalysis(str_filter, label, 2)
-        config.THREADS["sniffer_tcp_nohttp"] = PredatorPool("sniffer_tcp_nohttp", sniff, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
-        config.THREADS["analyze_tcp_nohttp"] = PredatorPool("analyze_tcp_nohttp", analyze_packets, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
-      if (args != [] and args[0] == "-ids" and (args[1] == "udp" or args[1] == "all")) or args == []:
-        str_filter = "udp"
-        label = "UDP"
-        handler = PredatorPacketAnalysis(str_filter, label, 3)
-        config.THREADS["sniffer_udp"] = PredatorPool("sniffer_udp", sniff, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
-        config.THREADS["analyze_udp"] = PredatorPool("analyze_udp", analyze_packets, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
+      for label_net in config.CIDRS.keys(): 
+        nets = build_net(config.CIDRS[label_net]['cidrs'])
+        if (args != [] and args[0] == "-ids" and (args[1] == "tcp_http" or args[1] == "all")) or args == []:
+          str_filter = f"tcp port 80 and ({nets})"
+          label = f"{label_net}_HTTP"
+          handler = PredatorPacketAnalysis(str_filter, label)
+          config.THREADS[f"{label_net}_sniffer_tcp_http"] = PredatorPool(f"{label_net}_sniffer_tcp_http", sniff, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
+          config.THREADS[f"{label_net}_analyze_tcp_http"] = PredatorPool(f"{label_net}_analyze_tcp_http", analyze_packets, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
+        if (args != [] and args[0] == "-ids" and (args[1] == "tcp_https" or args[1] == "all")) or args == []:
+          str_filter = f"tcp port 443 and ({nets})"
+          label = f"{label_net}_HTTPS"
+          handler = PredatorPacketAnalysis(str_filter, label)
+          config.THREADS[f"{label_net}_sniffer_tcp_https"] = PredatorPool(f"{label_net}_sniffer_tcp_https", sniff, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
+          config.THREADS[f"{label_net}_analyze_tcp_https"] = PredatorPool(f"{label_net}_analyze_tcp_https", analyze_packets, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
+        if (args != [] and args[0] == "-ids" and (args[1] == "tcp_nohttp" or args[1] == "all")) or args == []:
+          str_filter = f"tcp and not tcp port 80 and not tcp port 443 and ({nets})"
+          label = f"{label_net}_NOHTTP"
+          handler = PredatorPacketAnalysis(str_filter, label)
+          config.THREADS[f"{label_net}_sniffer_tcp_nohttp"] = PredatorPool(f"{label_net}_sniffer_tcp_nohttp", sniff, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
+          config.THREADS[f"{label_net}_analyze_tcp_nohttp"] = PredatorPool(f"{label_net}_analyze_tcp_nohttp", analyze_packets, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
+        if (args != [] and args[0] == "-ids" and (args[1] == "udp" or args[1] == "all")) or args == []:
+          str_filter = f"udp and ({nets})"
+          label = f"{label_net}_UDP"
+          handler = PredatorPacketAnalysis(str_filter, label)
+          config.THREADS[f"{label_net}_sniffer_udp"] = PredatorPool(f"{label_net}_sniffer_udp", sniff, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
+          config.THREADS[f"{label_net}_analyze_udp"] = PredatorPool(f"{label_net}_analyze_udp", analyze_packets, (config.NICS_TO_SNIFF, str_filter, label, handler,), True)
       
 #      for nic in config.NICS_TO_SNIFF:
 #        if args != None and args[0] == "-ids" and (args[1] == "tcp_http" or args[1] == "all"):

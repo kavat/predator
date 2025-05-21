@@ -60,3 +60,7 @@ def append_json_threat(thread_name, data):
 def get_curdatetime():
   now = datetime.now()
   return now.strftime("%Y-%m-%d %H:%M:%S")
+
+def split_array(num, array_cnt):
+  k, m = divmod(len(array_cnt), num)
+  return [array_cnt[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(num)]

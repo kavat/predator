@@ -19,6 +19,7 @@ PATH_LOGGER_PREDATOR_DNS = "{}/var/log/predator_dns.log".format(predator_file_pa
 PATH_LOGGER_PREDATOR_THREATS = "{}/var/log/predator_threats.log".format(predator_file_path)
 PATH_LOGGER_PREDATOR_MANAGEMENT = "{}/var/log/predator_management.log".format(predator_file_path)
 PATH_LOGGER_PREDATOR_SNIFFERS = "{}/var/log/predator_sniffers.log".format(predator_file_path)
+PATH_LOGGER_PREDATOR_SNIFFERS_GEN = "{}/var/log/predator_sniffers_XXX.log".format(predator_file_path)
 PATH_LOGGER_PREDATOR_L7 = "{}/var/log/predator_l7.log".format(predator_file_path)
 PATH_LOGGER_PREDATOR_LIBRARY = "{}/var/log/predator_library.log".format(predator_file_path)
 PATH_LOGGER_PREDATOR_PROXY = "{}/var/log/predator_proxy.log".format(predator_file_path)
@@ -39,7 +40,8 @@ SLEEP_THREAD_RESTART = 10
 SLEEP_THREAD_SOCKET_RESTART = 90
 
 LOG_TO_STD = True
-REDIS_BATCH_SIZE = 1000
+REDIS_BATCH_SIZE = 100
+REDIS_READ_SIZE = 10000
 
 LOGGERS = {}
 LOGGERS["RESOURCES"] = {}
@@ -82,7 +84,11 @@ PROXY_PROTOCOL = "HTTP/1.1"
 
 MALICIOUS_SUFFIXES = [".onion"]
 
-CIDRS = ['192.168.1.0/24']
+CIDRS = {
+  'home': {
+    'cidr': ['192.168.1.0/24']
+  }
+}
 NICS_TO_SNIFF = ["en0"]
 MANAGEMENT_HOST = "0.0.0.0"
 MANAGEMENT_PORT = 10000

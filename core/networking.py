@@ -18,14 +18,16 @@ from core.utils import (
   is_ip_checkable,
   is_malicious_host,
   check_tcp_conn,
-  get_curdatetime
+  get_curdatetime,
+  ip_is_checkable
 )
 from core.common_utils import (
   parse_json,
   parse_json_array,
   get_string_md5,
   append_json_threat,
-  string2b64
+  string2b64,
+  split_array
 )
 from core.logging import PredatorLogger
 
@@ -39,7 +41,7 @@ import redis
 
 class PredatorPacketAnalysis:
 
-  def __init__(self, filter_string, label, db):
+  def __init__(self, filter_string, label):
     self.filter_string = filter_string
     self.label = label
     self.matrix_connections = {}
@@ -47,8 +49,57 @@ class PredatorPacketAnalysis:
     self.upd_lock = Lock()
     self.packets_stored = 0
     self.packets_managed = 0
-    self.redis = redis.Redis(host="127.0.0.1", port=6379, db=db)
+    self.redis = redis.Redis(host="127.0.0.1", port=6379)
     self.redis_pipeline = self.redis.pipeline()
+
+    self.blacklist_ip: Dict[str, str] = {}
+    self.blacklist_fqdn: Dict[str, str] = {}
+    self.pattern_tcp_udp: List[str] = []
+    self.whitelist: Dict[str, Union[str, Dict]] = {}
+    self.dns: Dict[str, Dict] = {}
+    self.init_rules()
+
+  def init_rules(self):
+
+    for file_name in os.listdir(config.PATH_JSON):
+      file_path = os.path.join(config.PATH_JSON, file_name)
+
+      try:
+        if file_name == "whitelist.json":
+          self.upd_whitelist(parse_json(file_path))
+        elif file_name == "dns.json":
+          self.upd_dns(parse_json(file_path))
+        elif file_name == "hole_cert_fqdn.json":
+          self.upd_blacklist_fqdn(parse_json(file_path))
+        elif file_name == "patterns_tcp_udp.json":
+          self.upd_pattern_tcp_udp(parse_json_array(file_path))
+        elif file_name.endswith("_ip.json"):
+          self.upd_blacklist_ip(parse_json(file_path))
+        elif file_name.endswith("_fqdn.json"):
+          self.upd_blacklist_fqdn(parse_json(file_path))
+        elif file_name == "tor_nodes.json":
+          self.upd_blacklist_ip(parse_json(file_path))
+        elif file_name == "suricata.json":
+          self.upd_blacklist_ip(parse_json(file_path))
+        else:
+          print(f"Ignoring unknown file: {file_name}")
+      except Exception as e:
+        print(f"Error processing file {file_name}: {e}")
+
+  def upd_blacklist_ip(self, cnt: Dict[str, str]):
+    self.blacklist_ip.update(cnt)
+
+  def upd_blacklist_fqdn(self, cnt: Dict[str, str]):
+    self.blacklist_fqdn.update(cnt)
+
+  def upd_whitelist(self, cnt: Dict[str, Union[str, Dict]]):
+    self.whitelist.update(cnt)
+
+  def upd_dns(self, cnt: Dict[str, Dict]):
+    self.dns.update(cnt)
+
+  def upd_pattern_tcp_udp(self, cnt: List[str]):
+    self.pattern_tcp_udp = cnt
 
   def print_matrix(self, flags):
     print("PRINT POST " + flags)
@@ -97,13 +148,13 @@ class PredatorPacketAnalysis:
           'payload': payload
         })
 
-  def add_threat_l4(self, ip1, port1, ip2, port2, proto, flags, type_threat, type_flow, content_whitelisted, content_size, content_session_id, reporting, sni, host):
+  def add_threat_l4(self, ip1, port1, ip2, port2, proto, flags, type_threat, type_flow, content_whitelisted, content_size, content_session_id, reporting, sni, host, handshake_type, tls_session_id, pe_file):
     if type_flow == "dst":
       (src_ip, src_port, dst_ip, dst_port) = ip2, port2, ip1, port1
     else:
       (src_ip, src_port, dst_ip, dst_port) = ip1, port1, ip2, port2
     Library().client("add_threat|{},{},{},{},{},{},{},{},{},{}".format(src_ip, dst_ip, src_port, dst_port, proto, flags, host, sni, reporting, type_threat))
-    stringa_log = "LOG=PREDATOR_THREAT SRC={} SPORT={} DST={} DPORT={} PROTO={} FLAGS={} WHITELISTED_CONTENT={} CONTENT_SIZE={} CONTENT_SESSION_ID={} EVENT={}_{} REPORTING={} SNI={} HOST={}".format(src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, sni, host)
+    stringa_log = "LOG=PREDATOR_THREAT SRC={} SPORT={} DST={} DPORT={} PROTO={} FLAGS={} WHITELISTED_CONTENT={} CONTENT_SIZE={} CONTENT_SESSION_ID={} EVENT={}_{} REPORTING={} PE_FILE={} HANDSHAKE_TYPE={} TLS_SESSION_ID={} SNI={} HOST={}".format(src_ip, src_port, dst_ip, dst_port, proto, flags, content_whitelisted, content_size, content_session_id, type_threat, type_flow, reporting, pe_file, handshake_type, tls_session_id, sni, host)
     config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_THREATS"].get_logger().critical(stringa_log)
 
     if config.SEND_TO_SQLITE == True:
@@ -345,11 +396,15 @@ class PredatorPacketAnalysis:
           self.add_threat_dns(pkt, sport, dport, proto, "dns_request", rdata, qname)
 
   def store(self, packet):
-    self.packets_stored += 1
-    self.redis_pipeline.rpush(self.label, raw(packet))
-    if self.packets_stored >= config.REDIS_BATCH_SIZE:
-      self.packets_stored = 0
-      self.redis_pipeline.execute()
+    if IP in packet:
+      if ip_is_checkable(packet[IP].src, self) or ip_is_checkable(packet[IP].dst, self):
+        self.redis.rpush(self.label, raw(packet))
+        #self.packets_stored += 1
+        #self.redis_pipeline.rpush(self.label, raw(packet))
+        #if self.packets_stored >= config.REDIS_BATCH_SIZE:
+        #  print("eseguito")
+        #  self.packets_stored = 0
+        #  self.redis_pipeline.execute()
 
   def analyze(self, packet):
     #self.packets_managed += 1
@@ -373,14 +428,19 @@ class PredatorPacketAnalysis:
 
           for ip in connection_to_analyze:
             (ip_check, port_check, proto_check, ip_type_flow, ip2, port2)  = ip['ip'], ip['port'], ip['proto'], ip['type'], ip['ip2'], ip['port2']
-            if is_ip_checkable(ip_check, port_check, proto_check):
-              config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = CHECK")
-              content_tls = False
-              sni = ""
-              if check_tls(packet):
-                sni = extract_sni(packet)
-                content_tls = True
-              config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST SNI")
+            pe_in_header = check_pe_signature(packet)
+            content_tls = False
+            sni = ""
+            handshake_type = ""
+            tls_session_id = ""
+            config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = CHECK")
+            if check_tls(packet):
+              sni = extract_sni(packet)
+              (handshake_type, tls_session_id) = extract_tls_session_id(packet)
+              content_tls = True
+            config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST CHECK TLS")
+
+            if is_ip_checkable(ip_check, port_check, proto_check, self):
               if flags.startswith("S"):
                 self.init_matrix_connection(ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
                 config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST MATRIX INIT")
@@ -396,21 +456,63 @@ class PredatorPacketAnalysis:
               config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST CONTENT SIZE")
               content_session_id = get_connection_content_session_id(self.get_handler(), ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
               config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST CONTENT SESSION")
-              self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_ip", ip_type_flow, content_whitelisted, content_size, content_session_id, get_type_ip_fqdn_warn(ip_check, ""), sni, host)
+              self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_ip", ip_type_flow, content_whitelisted, content_size, content_session_id, get_type_ip_fqdn_warn(ip_check, ""), sni, host, handshake_type, tls_session_id, str(pe_in_header))
               config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST ADD THREAT")
-            #else:
-              #config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = SKIP")
+            else:
+              config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = SKIP")
+              if pe_in_header:
+                host, content_size = self.get_host_from_packet_raw(packet)
+                self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_ip", ip_type_flow, "NO", content_size, "ND", get_type_ip_fqdn_warn(ip_check, ""), sni, host, handshake_type, tls_session_id, str(pe_in_header))
 
           host, content_size = self.get_host_from_packet_raw(packet)
-          if is_malicious_host(host):
+          if is_malicious_host(host, self):
             config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {host} L4_domain")
             reporting = get_type_ip_fqdn_warn("", host)
             if reporting == "":
               reporting = "static_patterns"
             config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {host} pre add threat")
-            self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_domain", ip_type_flow, "NO", content_size, "ND", reporting, sni, host)
+            self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_domain", ip_type_flow, "NO", content_size, "ND", reporting, sni, host, "False")
             config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {host} post add threat")
 
+
+def extract_tls_session_id(packet):
+  try:
+
+    if packet.haslayer(TCP) and packet.haslayer(Raw):
+      payload = packet[Raw].load
+
+      if len(payload) < 6:
+        return "", ""
+
+      if payload[0] != 0x16:
+        return "", ""  # Not TLS Handshake record
+
+      record_version = payload[1:3]
+      handshake_type = payload[5]
+      if handshake_type not in (0x01, 0x02):  # 0x01 = ClientHello, 0x02 = ServerHello
+        return "", ""
+
+      idx = 9  # TLS record header (5) + handshake header (4)
+      if idx + 2 > len(payload):
+        return "", ""
+
+      version = payload[idx:idx+2]
+      idx += 2
+      idx += 32  # skip random
+      if idx >= len(payload):
+        return "", ""
+
+      session_id_len = payload[idx]
+      idx += 1
+      if idx + session_id_len > len(payload):
+        return "", ""
+
+      session_id = payload[idx:idx+session_id_len]
+      return str(handshake_type), str(session_id.hex())
+  except:
+    return "", ""
+
+  return "", ""
 
 def extract_sni(packet):
   try:
@@ -460,10 +562,13 @@ def extract_sni(packet):
   return ""
 
 def check_tls(packet):
-  if packet.haslayer(TCP) and packet.haslayer(Raw):
-    data = packet[Raw].load
-    if data[0] == 0x16 and data[5] == 0x01:  # TLS Handshake, ClientHello
-      return True
+  try:
+    if packet.haslayer(TCP) and packet.haslayer(Raw):
+      data = packet[Raw].load
+      if data[0] == 0x16 and data[5] == 0x01:  # TLS Handshake, ClientHello
+        return True
+  except:
+    pass
   return False
 
 def get_host_from_header(predator_packet_analysis, init_conn_ip, init_conn_port, endpoint_conn_ip, endpoint_conn_port, label, flags):
@@ -498,6 +603,39 @@ def sniff(interface, str_filter, label, predator_handler):
     config.LOGGERS_SNIFFERS[label].get_logger().critical("Restarting thread")
     sniff(interface, str_filter, label, predator_handler)
 
+def build_net(cidrs):
+  r = []
+  for cidr in cidrs:
+    r.append(f"net {cidr}")
+  return ' or '.join(r)
+
+def check_pe_signature(packet):
+  try:
+
+    if Raw in packet:
+      data = packet[Raw].load
+
+      # Step 1: verifica che 'MZ' sia entro i primi 2 byte
+      if b"MZ" not in data[:2]:
+        return False
+
+      # Step 2: leggi 4 byte in little endian a offset 58 (e_lfanew in PE header è a offset 0x3C = 60, ma forse Suricata parte da 'mz')
+      if len(data) < 62:
+        return False  # Evita index error
+      pe_offset = int.from_bytes(data[58:62], byteorder='little')
+
+      # Step 3: cerca 'PE\x00\x00' entro 4 byte da pe_offset
+      if len(data) < pe_offset + 4:
+        return False
+      if data[pe_offset:pe_offset + 4] == b'PE\x00\x00':
+        return True
+      else:
+        return False
+    else:
+      return False
+  except Exception:
+    return False
+
 def analyze_packets(interface, str_filter, label, predator_handler):
   try:
     config.LOGGERS_SNIFFERS[label] = PredatorLogger(f"PREDATOR_SNIFFERS_{label}", config.PATH_LOGGER_PREDATOR_SNIFFERS_GEN.replace("XXX", label), config.LOG_TO_STD, logging.INFO)
@@ -505,15 +643,21 @@ def analyze_packets(interface, str_filter, label, predator_handler):
     predator_handler.init_matrix_connections()
     while True:
       try:
-        packets = predator_handler.redis.lrange(label, 0, config.REDIS_READ_SIZE -1)
-        if packets:
-          for raw_pkt in packets:
-            predator_handler.analyze(Ether(raw_pkt))
-          predator_handler.redis.ltrim(label, config.REDIS_READ_SIZE, -1)
+        redis_llen = predator_handler.redis.llen(label)
+        if redis_llen > 0:
+          packets = predator_handler.redis.lrange(label, 0, redis_llen -1)
+          #packets = predator_handler.redis.lrange(label, 0, config.REDIS_READ_SIZE -1)
+          if packets:
+            for raw_pkt in packets:
+              predator_handler.analyze(Ether(raw_pkt))
+            #predator_handler.redis.ltrim(label, config.REDIS_READ_SIZE, -1)
+            predator_handler.redis.ltrim(label, redis_llen, -1)
+          else:
+            time.sleep(0.100)
         else:
           time.sleep(0.100)
       except Exception as e:
-        print(e)
+        config.LOGGERS_SNIFFERS[label].get_logger().critical(f"Exception during handling {label}: {e}", exc_info=True)
         time.sleep(0.100)
         pass
   except Exception as e:
