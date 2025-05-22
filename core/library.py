@@ -4,6 +4,7 @@ import os
 import time
 import json
 import geoip2.database
+import tempfile
 
 from threading import Lock
 from typing import Dict, List, Union
@@ -102,9 +103,7 @@ class Library:
     logger.info("Rules loaded successfully.")
 
   def server(self):
-
-    if config.IDS == True:
-      self.init_rules()
+    self.init_rules()
 
     try:
       os.unlink(config.SOCKET_LIBRARY)
@@ -333,6 +332,7 @@ class Library:
 
   def client(self, message: str, json_r: bool = False) -> Union[str, dict]:
     client_socket = f"{config.SOCKET_LIBRARY_BASE_CLIENT}/{id_generator(10)}.sock"
+    client_socket = tempfile.mktemp()
     client = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
     client.bind(client_socket)
 

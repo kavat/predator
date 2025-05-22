@@ -17,6 +17,8 @@ from core.utils import (
   get_connection_content_session_id,
   is_ip_checkable,
   is_malicious_host,
+  is_ip_checkable_library,
+  is_malicious_host_library,
   check_tcp_conn,
   get_curdatetime,
   ip_is_checkable
@@ -441,6 +443,7 @@ class PredatorPacketAnalysis:
             config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST CHECK TLS")
 
             if is_ip_checkable(ip_check, port_check, proto_check, self):
+            #if is_ip_checkable_library(ip_check, port_check, proto_check, self):
               if flags.startswith("S"):
                 self.init_matrix_connection(ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags)
                 config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST MATRIX INIT")
@@ -466,6 +469,7 @@ class PredatorPacketAnalysis:
 
           host, content_size = self.get_host_from_packet_raw(packet)
           if is_malicious_host(host, self):
+          #if is_malicious_host_library(host, self):
             config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {host} L4_domain")
             reporting = get_type_ip_fqdn_warn("", host)
             if reporting == "":
@@ -622,17 +626,11 @@ def check_pe_signature(packet):
       # Step 2: leggi 4 byte in little endian a offset 58 (e_lfanew in PE header è a offset 0x3C = 60, ma forse Suricata parte da 'mz')
       if len(data) < 62:
         return False  # Evita index error
-      pe_offset = int.from_bytes(data[58:62], byteorder='little')
 
-      # Step 3: cerca 'PE\x00\x00' entro 4 byte da pe_offset
-      if len(data) < pe_offset + 4:
-        return False
-      if data[pe_offset:pe_offset + 4] == b'PE\x00\x00':
+      if b'PE\x00\x00' in data:
         return True
-      else:
-        return False
-    else:
-      return False
+
+    return False
   except Exception:
     return False
 
@@ -645,13 +643,13 @@ def analyze_packets(interface, str_filter, label, predator_handler):
       try:
         redis_llen = predator_handler.redis.llen(label)
         if redis_llen > 0:
-          packets = predator_handler.redis.lrange(label, 0, redis_llen -1)
-          #packets = predator_handler.redis.lrange(label, 0, config.REDIS_READ_SIZE -1)
+          #packets = predator_handler.redis.lrange(label, 0, redis_llen -1)
+          packets = predator_handler.redis.lrange(label, 0, config.REDIS_READ_SIZE -1)
           if packets:
             for raw_pkt in packets:
               predator_handler.analyze(Ether(raw_pkt))
-            #predator_handler.redis.ltrim(label, config.REDIS_READ_SIZE, -1)
-            predator_handler.redis.ltrim(label, redis_llen, -1)
+            predator_handler.redis.ltrim(label, config.REDIS_READ_SIZE, -1)
+            #predator_handler.redis.ltrim(label, redis_llen, -1)
           else:
             time.sleep(0.100)
         else:

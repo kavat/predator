@@ -132,6 +132,9 @@ status() {
   ls -lht ${LOG_PATH}/predator*.log
   echo -n "Predator local DB items $(ls ${DB_PATH}/*.json | wc -l)"
   echo ""
+  echo "Predator queues status"
+  for chiave in $(echo "KEYS *" | redis-cli | awk '{print $1}'); do coda=$(echo "llen ${chiave}" | redis-cli); echo "${chiave}: ${coda}"; done
+  echo ""
 }
 
 start() {

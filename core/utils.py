@@ -300,11 +300,25 @@ def is_ip_checkable(ip, port, proto, predator_obj):
         return True
   return False
 
+def is_ip_checkable_library(ip, port, proto, predator_obj):
+  if(ipaddress.ip_address(ip).is_private == False and check_if_ip_is_in_cidrs(ip) == False):
+    if(Library().client("blacklist_ip|{}".format(ip)) != "no" and Library().client("whitelist|{}".format(ip))):
+      if net_whitelisted(ip, proto, str(port), "") == False:
+        return True
+  return False
+
 def is_malicious_host(host, predator_obj):
   if host == "":
     return False
   #if Library().client("blacklist_fqdn|{}".format(host)) != "no" or static_fqdn_checks([host]):
   if host in predator_obj.blacklist_fqdn or static_fqdn_checks([host]):
+    return True
+  return False
+
+def is_malicious_host_library(host, predator_obj):
+  if host == "":
+    return False
+  if Library().client("blacklist_fqdn|{}".format(host)) != "no" or static_fqdn_checks([host]):
     return True
   return False
 
