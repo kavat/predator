@@ -113,7 +113,7 @@ def static_fqdn_checks(fqdns):
       else:
         qname = fqdn
       for malicious_suffix in config.MALICIOUS_SUFFIXES:
-        if qname.endswith(malicious_suffix):
+        if qname.endswith(tuple(malicious_suffix)):
           return True
   return False
 
@@ -287,14 +287,11 @@ def check_if_ip_is_in_cidrs(ip):
 
 def ip_is_checkable(ip, predator_obj):
   if(ipaddress.ip_address(ip).is_private == False and check_if_ip_is_in_cidrs(ip) == False):
-    #if ip in predator_obj.blacklist_ip and ip not in predator_obj.whitelist:
-    #  return True
     return True
   return False
 
 def is_ip_checkable(ip, port, proto, predator_obj):
   if(ipaddress.ip_address(ip).is_private == False and check_if_ip_is_in_cidrs(ip) == False):
-    #if(Library().client("blacklist_ip|{}".format(ip)) != "no" and Library().client("whitelist|{}".format(ip))):
     if ip in predator_obj.blacklist_ip and ip not in predator_obj.whitelist:
       if net_whitelisted(ip, proto, str(port), "") == False:
         return True
@@ -310,7 +307,6 @@ def is_ip_checkable_library(ip, port, proto, predator_obj):
 def is_malicious_host(host, predator_obj):
   if host == "":
     return False
-  #if Library().client("blacklist_fqdn|{}".format(host)) != "no" or static_fqdn_checks([host]):
   if host in predator_obj.blacklist_fqdn or static_fqdn_checks([host]):
     return True
   return False

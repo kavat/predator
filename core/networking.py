@@ -48,6 +48,7 @@ class PredatorPacketAnalysis:
     self.label = label
     self.matrix_connections = {}
     self.matrix_connections_lock = Lock()
+    self.matrix_host_connections = {}
     self.upd_lock = Lock()
     self.packets_stored = 0
     self.packets_managed = 0
@@ -62,10 +63,8 @@ class PredatorPacketAnalysis:
     self.init_rules()
 
   def init_rules(self):
-
     for file_name in os.listdir(config.PATH_JSON):
       file_path = os.path.join(config.PATH_JSON, file_name)
-
       try:
         if file_name == "whitelist.json":
           self.upd_whitelist(parse_json(file_path))
@@ -107,6 +106,24 @@ class PredatorPacketAnalysis:
     print("PRINT POST " + flags)
     print(self.matrix_connections)
     print("------------------------------------------------")
+
+  def manage_packet_for_host(self, ip1, port1, ip2, port2, label, flags, packet):
+    if flags.startswith("S"):
+      self.init_matrix_host_connections(ip1, port1, ip2, port2, label, flags)
+    elif "F" in flags or "R" in flags:
+      self.end_matrix_host_connections(ip1, port1, ip2, port2, label, flags)
+    else:
+      if 'P' in flags and 'Raw' in packet:
+        packet_content = ""
+        try:
+          packet_content = packet[Raw].load.decode('latin-1')
+        except Exception as ed:
+          packet_content = ""
+        if packet_content != "":
+          for riga in packet_content.split("\n"):
+            if riga.strip() != "":
+              if riga.strip().lower().startswith('host') == True:
+                self.set_host_matrix_host_connections(ip1, port1, ip2, port2, label, flags, riga.strip().lower().replace("host: ", ""))
 
   def get_handler(self):
     return self
@@ -217,8 +234,51 @@ class PredatorPacketAnalysis:
   def get_matrix_connections(self):
     return self.matrix_connections
 
+  def init_matrix_host_connections(self, p1, p2, p3, p4, label, flags):
+    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("init_matrix_host_connections P1 {} P2 {} P3 {} P4 {}".format(p1, p2, p3, p4))
+    self.matrix_host_connections[get_string_md5(f"{p1}_{p2}_{p3}_{p4}")] = ""
+    self.matrix_host_connections[get_string_md5(f"{p3}_{p4}_{p1}_{p2}")] = ""
+
+  def end_matrix_host_connections(self, p1, p2, p3, p4, label, flags):
+    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("end_matrix_host_connections P1 {} P2 {} P3 {} P4 {}".format(p1, p2, p3, p4))
+    try:
+      del self.matrix_host_connections[get_string_md5(f"{p1}_{p2}_{p3}_{p4}")]
+    except:
+      pass
+    try:
+      del self.matrix_host_connections[get_string_md5(f"{p3}_{p4}_{p1}_{p2}")]
+    except:
+      pass
+
+  def set_host_matrix_host_connections(self, p1, p2, p3, p4, label, flags, host):
+    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("set_host_matrix_host_connections P1 {} P2 {} P3 {} P4 {}".format(p1, p2, p3, p4))
+    try:
+      self.matrix_host_connections[get_string_md5(f"{p1}_{p2}_{p3}_{p4}")] = host
+    except:
+      pass
+    try:
+      self.matrix_host_connections[get_string_md5(f"{p3}_{p4}_{p1}_{p2}")] = host
+    except:
+      pass
+
+  def get_host_from_matrix_host_connections(self, p1, p2, p3, p4):
+    host_1 = ""
+    host_2 = ""
+    try:
+      host_1 = self.matrix_host_connections[get_string_md5(f"{p1}_{p2}_{p3}_{p4}")]
+    except:
+      try:
+        host_2 = self.matrix_host_connections[get_string_md5(f"{p3}_{p4}_{p1}_{p2}")]
+      except:
+        pass
+    if host_1 != "":
+      return host_1
+    if host_2 != "":
+      return host_2
+    return ""
+
   def init_matrix_connection(self, p1, p2, p3, p4, label, flags):
-    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P1 {} P2 {} P3 {} P4 {}".format(p1, p2, p3, p4))
+    config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("init_matrix_host_connections P1 {} P2 {} P3 {} P4 {}".format(p1, p2, p3, p4))
     try:
       with self.matrix_connections_lock:
         session_id = self.matrix_connections[p1][p2][p3][p4]['id_connection']
@@ -239,26 +299,26 @@ class PredatorPacketAnalysis:
         session_datetime = get_curdatetime()
     try:
       if p1 not in self.matrix_connections:
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P1 {} non presente sopra".format(p1))
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("init_matrix_connections P1 {} non presente sopra".format(p1))
         with self.matrix_connections_lock:
           self.matrix_connections[p1] = {}
       if p2 not in self.matrix_connections[p1]:
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P2 {} non presente sopra".format(p2))
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("init_matrix_connections P2 {} non presente sopra".format(p2))
         with self.matrix_connections_lock:
           self.matrix_connections[p1][p2] = {}
       if p3 not in self.matrix_connections[p1][p2]:
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P3 {} non presente sopra".format(p3))
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("init_matrix_connections P3 {} non presente sopra".format(p3))
         with self.matrix_connections_lock:
           self.matrix_connections[p1][p2][p3] = {}
       if p4 not in self.matrix_connections[p1][p2][p3]:
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("P4 {} non presente sopra".format(p4))
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("init_matrix_connections P4 {} non presente sopra".format(p4))
         with self.matrix_connections_lock:
           self.matrix_connections[p1][p2][p3][p4] = {}
           self.matrix_connections[p1][p2][p3][p4]['content'] = content
           self.matrix_connections[p1][p2][p3][p4]['size_content'] = size_content
           self.matrix_connections[p1][p2][p3][p4]['id_connection'] = session_id
           self.matrix_connections[p1][p2][p3][p4]['datetime'] = session_datetime
-        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("Created session {} {} for {}:{}:{}:{} [{}]".format(label, flags, p1, p2, p3, p4, session_id))
+        config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MAIN"].get_logger().debug("init_matrix_connections Created session {} {} for {}:{}:{}:{} [{}]".format(label, flags, p1, p2, p3, p4, session_id))
     except Exception as e:
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_L7"].get_logger().critical("{} received, error creating session {} for {}:{}:{}:{}".format(label, flags, p1, p2, p3, p4))
       config.LOGGERS["RESOURCES"]["LOGGER_PREDATOR_MASTER_EXCEPTIONS"].get_logger().critical("init_matrix_connection() BOOM!!!")
@@ -400,13 +460,8 @@ class PredatorPacketAnalysis:
   def store(self, packet):
     if IP in packet:
       if ip_is_checkable(packet[IP].src, self) or ip_is_checkable(packet[IP].dst, self):
-        self.redis.rpush(self.label, raw(packet))
-        #self.packets_stored += 1
-        #self.redis_pipeline.rpush(self.label, raw(packet))
-        #if self.packets_stored >= config.REDIS_BATCH_SIZE:
-        #  print("eseguito")
-        #  self.packets_stored = 0
-        #  self.redis_pipeline.execute()
+        #self.redis.rpush(self.label, raw(packet))
+        self.redis.xadd(self.label, {'packet': raw(packet)})
 
   def analyze(self, packet):
     #self.packets_managed += 1
@@ -442,6 +497,9 @@ class PredatorPacketAnalysis:
               content_tls = True
             config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = POST CHECK TLS")
 
+            if content_tls == False:
+              self.manage_packet_for_host(ip_check, port_check, ip2, port2, "evil_{}".format(ip_type_flow), flags, packet)
+
             if is_ip_checkable(ip_check, port_check, proto_check, self):
             #if is_ip_checkable_library(ip_check, port_check, proto_check, self):
               if flags.startswith("S"):
@@ -464,8 +522,9 @@ class PredatorPacketAnalysis:
             else:
               config.LOGGERS_SNIFFERS[self.label].get_logger().debug(f"{id_log} {ip_check} {port_check} {proto_check} {ip_type_flow} {ip2} {port2} = SKIP")
               if pe_in_header:
-                host, content_size = self.get_host_from_packet_raw(packet)
-                self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L4_ip", ip_type_flow, "NO", content_size, "ND", get_type_ip_fqdn_warn(ip_check, ""), sni, host, handshake_type, tls_session_id, str(pe_in_header))
+                content_size = -1
+                host = self.get_host_from_matrix_host_connections(ip_check, port_check, ip2, port2)
+                self.add_threat_l4(ip_check, port_check, ip2, port2, proto, flags, "L7_PE_ip", ip_type_flow, "NO", content_size, "ND", get_type_ip_fqdn_warn(ip_check, ""), sni, host, handshake_type, tls_session_id, str(pe_in_header))
 
           host, content_size = self.get_host_from_packet_raw(packet)
           if is_malicious_host(host, self):
@@ -636,22 +695,24 @@ def check_pe_signature(packet):
 
 def analyze_packets(interface, str_filter, label, predator_handler):
   try:
+    last_redis_id = "0-0"
     config.LOGGERS_SNIFFERS[label] = PredatorLogger(f"PREDATOR_SNIFFERS_{label}", config.PATH_LOGGER_PREDATOR_SNIFFERS_GEN.replace("XXX", label), config.LOG_TO_STD, logging.INFO)
     config.LOGGERS_SNIFFERS[label].get_logger().info("STARTING THREAD ANALYZER " + str(interface) + " WITH FILTER " + str_filter)
     predator_handler.init_matrix_connections()
     while True:
       try:
-        redis_llen = predator_handler.redis.llen(label)
-        if redis_llen > 0:
-          #packets = predator_handler.redis.lrange(label, 0, redis_llen -1)
-          packets = predator_handler.redis.lrange(label, 0, config.REDIS_READ_SIZE -1)
-          if packets:
-            for raw_pkt in packets:
+        packets_redis = predator_handler.redis.xread({label: last_redis_id}, count=config.REDIS_READ_SIZE, block=config.REDIS_READ_SIZE)
+        if packets_redis:
+          letti = []
+          for stream_name, messages in packets_redis:
+            for msg_id, data in messages:
+              raw_pkt = data[b'packet']
+              packet = Ether(raw_pkt)
               predator_handler.analyze(Ether(raw_pkt))
-            predator_handler.redis.ltrim(label, config.REDIS_READ_SIZE, -1)
-            #predator_handler.redis.ltrim(label, redis_llen, -1)
-          else:
-            time.sleep(0.100)
+              letti.append(msg_id)
+              last_redis_id = msg_id
+          if letti:
+            predator_handler.redis.xdel(label, *letti)
         else:
           time.sleep(0.100)
       except Exception as e:
