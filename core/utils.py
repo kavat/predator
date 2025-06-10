@@ -113,7 +113,12 @@ def static_fqdn_checks(fqdns):
       else:
         qname = fqdn
       for malicious_suffix in config.MALICIOUS_SUFFIXES:
-        if qname.endswith(tuple(malicious_suffix)):
+        data = ""
+        try:
+          data = qname.decode("ascii")
+        except:
+          data = str(qname)
+        if data.endswith(malicious_suffix):
           return True
   return False
 
